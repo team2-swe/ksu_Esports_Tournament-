@@ -1,5 +1,0 @@
-2025-01-26 00:17:41,478:INFO:37588:MainThread:start bot
-2025-01-26 00:17:41,478:WARNING:37588:MainThread:PyNaCl is not installed, voice will NOT be supported
-2025-01-26 00:17:41,478:INFO:37588:MainThread:logging in using static token
-2025-01-26 00:17:42,059:INFO:37588:MainThread:Shard ID None has connected to Gateway (Session ID: 6311ecf6d649c050134e33dd56d18b68).
-2025-01-26 00:17:44,065:INFO:37588:MainThread:loged into server as esports_tournament_team2#3986
