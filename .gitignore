@@ -1,0 +1,6 @@
+Log/*
+!Log/.gitkeep
+.env
+venv
+*.db
+*.log
