@@ -23,21 +23,25 @@ async def main():
     intents.members = True  # Make sure to enable the intent to access members' information.
     intents.message_content = True
 
-    bot = commands.Bot(command_prefix="$", intents=intents)
+    sys_client = commands.Bot(command_prefix="$", intents=intents)
 
-    @bot.event
+    @sys_client.event
     async def on_ready():
-        logger.info(f"loged into server as {bot.user}")
+        logger.info(f"loged into server as {sys_client.user}")
 
         # Load the cogs (controllers)
-        await bot.load_extension('controller.players_detail')
-        await bot.load_extension('controller.giveaway_cog')
-
-        guild = bot.get_guild(settings.GUILD_ID)
+        await sys_client.load_extension('controller.events')
+        await sys_client.load_extension('controller.admin_controller')
+        await sys_client.load_extension('controller.players_detail')
+        await sys_client.load_extension('controller.giveaway_cog')
+        
+        
+        guild = sys_client.get_guild(settings.GUILD_ID)
 
         #copy the global slash commands to the specific guild
-        bot.tree.copy_global_to(guild=guild)
-        await bot.tree.sync(guild=guild)
+        sys_client.tree.copy_global_to(guild=guild)
+        await sys_client.tree.sync(guild=guild)
+
 
     
     # Initialize the database and create tables
@@ -45,7 +49,7 @@ async def main():
     tournament_dbc.create_tables([Game, Player])
 
     #error handling
-    @bot.event
+    @sys_client.event
     async def on_command_error(ctx, error):
         if isinstance(error, errors.ArgumentParsingError):
             await ctx.send("there is parsing error")
@@ -61,7 +65,7 @@ async def main():
             await ctx.send("Something went wrong, from global error handler")
     
     # Run the bot with your token
-    await bot.start(settings.DISCORD_API_SECRET, reconnect=True)
+    await sys_client.start(settings.DISCORD_API_SECRET, reconnect=True)
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -7,8 +7,7 @@ class PlayerDetails(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="playerInfo", description="validating a player")
-    @staticmethod
+    @app_commands.command(name="playersinfo", description="validating a player")
     async def player(self, interaction: discord.Interaction):
         confirm_result = Player.fetch(interaction)
         await interaction.response.send_message(f"your account {confirm_result.discord_id} is created")

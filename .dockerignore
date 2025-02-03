@@ -1,0 +1,17 @@
+**/__pycache__
+venv/
+.env/
+
+**/.log
+*.bak
+
+token.json
+*.db
+!main_db.db
+
+*.xlsx
+!PlayerStats.xlsx
+
+Documentation/
+test_folder/
+run.py

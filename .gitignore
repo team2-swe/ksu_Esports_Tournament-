@@ -4,3 +4,6 @@ Log/*
 venv
 *.db
 *.log
+test_folder/*
+run.py
+ksu_tournament.db
