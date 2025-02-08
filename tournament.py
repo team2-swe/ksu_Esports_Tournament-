@@ -5,7 +5,9 @@ from config import settings
 from discord.ext.commands import errors
 from model.dbc_model import Player, Game
 from common.database_connection import tournament_dbc
+from common.cached_details import Details_Cached
 from model.dbc_model import Game, Player
+
 
 '''
 we use bot.start(): 
@@ -29,11 +31,27 @@ async def main():
     async def on_ready():
         logger.info(f"loged into server as {sys_client.user}")
 
+        #create a channels and save cached created channels on all server bot is running
+        for guild in sys_client.guilds:
+            logger.info(f"the guild value is: {guild.id}")
+            await Details_Cached.channels_for_tournament(ch_config=settings.CHANNEL_CONFIG, guild=guild)
+
         # Load the cogs (controllers)
-        await sys_client.load_extension('controller.events')
-        await sys_client.load_extension('controller.admin_controller')
-        await sys_client.load_extension('controller.players_detail')
-        await sys_client.load_extension('controller.giveaway_cog')
+        for cmd_file in settings.controller_dir.glob("*.py"):
+            if cmd_file.name != "__init__.py" and cmd_file.name != "signup_shared_logic.py":
+                try:
+                    # await sys_client.load_extension(f"controller.{cmd_file.name[:-3]}")
+                    await sys_client.load_extension(f"controller.{cmd_file.stem}")
+                except errors.ExtensionAlreadyLoaded:
+                    logger.info(f"{cmd_file.stem} command is already loaded")
+                except Exception as ex:
+                    logger.info(f"Error loading {cmd_file.stem} command: {ex}")
+
+        # await sys_client.load_extension('controller.events')
+        # await sys_client.load_extension('controller.admin_controller')
+        # await sys_client.load_extension('controller.players_detail')
+        # await sys_client.load_extension('controller.giveaway_cog')
+        # await sys_client.load_extension('controller.player_signup')
         
         
         guild = sys_client.get_guild(settings.GUILD_ID)

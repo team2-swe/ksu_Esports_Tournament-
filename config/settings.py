@@ -8,12 +8,18 @@ load_dotenv()
 
 DISCORD_API_SECRET=os.getenv("DISCORD_APITOKEN")
 GUILD_ID = int(os.getenv("DISCORD_GUILD"))
-FEEDBACK_CH = int(os.getenv("FEEDBACK_CH"))
+# FEEDBACK_CH = int(os.getenv("FEEDBACK_CH"))
+FEEDBACK_CH = os.getenv("FEEDBACK_CH")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+CHANNEL_CONFIG = os.getenv("CHANNEL_CONFIG")
+PLAYERES_CH = os.getenv("CHANNEL_PLAYER")
+TOURNAMENT_CH = os.getenv("TOURNAMENT_CH")
+PRIVATE_CH = os.getenv("PRIVATE_CH")
 
 # pathlib.Path(__file__) this is the current file where the code is present
 File_Dir = pathlib.Path(__file__).parent # This will give the current directory path where the file is present
 Base_Dir = File_Dir.parent
+controller_dir = Base_Dir / "controller"
 
 
 LOGGING_CONFIG = {

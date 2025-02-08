@@ -7,3 +7,4 @@ venv
 test_folder/*
 run.py
 ksu_tournament.db
+cached_details.json

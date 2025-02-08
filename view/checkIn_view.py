@@ -2,23 +2,26 @@ import discord
 from discord.ui import *
 from config import settings
 import traceback
-
-class CheckIn_view(View):
-    def __init__(self, *, timeout = 180):
-        super().__init__(timeout=timeout)
-
-    @button(label='Check In', style=discord.ButtonStyle.green)
-    async def check_in(self, interaction: discord.Interaction, button: Button):
-        #call the controller to handle the interaction here
-        pass
-
-import discord
+import asyncio
 from model.button_state import ButtonState
+from model.dbc_model import Player
+from config import settings
+from common.cached_details import Details_Cached
+# from signUp_view import SignUpView
+from common import common_scripts
+import time
+from model import dbc_model
+from view.common_view import PlayerPrefRole
+from controller.signup_shared_logic import SharedLogic
+
+logger = settings.logging.getLogger("discord")
 
 class CheckinView(discord.ui.View):
-    def __init__(self, buttonState, timeout = 15):
+    def __init__(self, buttonState, timeout = 30):
         super().__init__(timeout=timeout)
         self.button_state = buttonState
+        self.timeout = timeout
+        self.viewStart_time = time.time()
 
     async def disable_all_items(self):
         for item in self.children:
@@ -32,14 +35,73 @@ class CheckinView(discord.ui.View):
         await self.message.channel.send("this action is timed out, please use a command to register")
         await self.disable_all_items()
 
+
+
     @discord.ui.button(label="Checkin", style=discord.ButtonStyle.success)
     async def Checkin(self, interaction: discord.Interaction, button:discord.ui.Button):
-        self.disable_all_items()
-        player_preference_role_view = PlayerPrefRole()
+        remaining_time = self.timeout - (time.time() - self.viewStart_time)
+        if Player.isAcountExist(interaction):
+            # self.disable_all_items()
+            player_preference_role_view = PlayerPrefRole()
 
-        await interaction.response.send_message(view=player_preference_role_view)
-        self.button_state.set_button_state(True)
-        self.stop()
+            await interaction.response.send_message(view=player_preference_role_view)
+            await asyncio.sleep(self.timeout)
+            await message.delete()
+            # await self.channel.send(view=player_preference_role_view)
+            # self.button_state.set_button_state(True)
+            # self.stop()
+        else:
+            button_state = ButtonState()
+            signUp_view = SignUpView(button_state, timeout=remaining_time)
+
+            if signUp_view.children:
+
+                ksu_logo_path = await common_scripts.get_ksu_logo()
+                resize_logo, logo_extention  = await common_scripts.ksu_img_resize(ksu_logo_path)
+                # logo = discord.File(resize_logo, filename=resize_logo.name)
+
+                logger.info(f"log path is : {resize_logo} and file name {logo_extention}")
+
+                embed = discord.Embed(
+                    color=discord.Colour.dark_teal(),
+                    description="this is our server to play game .........................\
+                    .................................................................\
+                        ........................................................\
+                            .................................",
+                    title=f"welcome to {interaction.guild} server"
+                )
+                # embed.set_image(url=f"{ksu_logo_path}")
+                embed.set_thumbnail(url=f"attachment://resized_logo{logo_extention}")
+
+                # guild_id = interaction.guild.id
+                # channelName = settings.PLAYERES_CH
+                # registeration_CH_Id = await Details_Cached.get_channel_id(channelName, guild_id)
+                # channel = interaction.guild.get_channel(registeration_CH_Id)
+                # await channel.send(embed=embed, file=discord.File(resize_logo, filename=f"resized_logo{logo_extention}"))
+                # message = await channel.send(view=signUp_view)
+
+                message = await interaction.response.send_message(embed=embed, file=discord.File(resize_logo, filename=f"resized_logo{logo_extention}"), view=signUp_view)
+                # message = await interaction.response.send_message(view=signUp_view)
+
+                signUp_view.message = message
+
+                # await signUp_view.wait()
+                await asyncio.sleep(self.timeout)
+                await message.delete()
+
+                await interaction.response.send_message(f"Checkin time has completed")
+
+                # if button_state.buttons_state is None:
+                #     logger.info(f"member id:{member.id} loged in the first time")
+
+                # if button_state.buttons_state is True:
+                #     logger.info(f"member id:{member.id} successfully sign up")
+
+            else:
+                logger.error("signup view is not working please take a look")
+                server_owner = interaction.guild.owner
+
+                await server_owner.send(f"Hello {server_owner} the signup view is not working please check")
 
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
@@ -48,25 +110,28 @@ class CheckinView(discord.ui.View):
         self.buttonState.set_button_state(True)
         self.stop()
 
-
-class RegisterModal(Modal):
-    def __init__(self, title: str = "register form"):
-        super().__init__(title=title)
-
-        game_name = TextInput(
-            style=discord.TextStyle.short,
-            label="Title",
+'''
+class RegisterModal(Modal, title="Registeration"):
+    def __init__(self, timeout=15):
+        super().__init__()
+        self.timeout = timeout
+        self.viewStart_time = time.time()
+        self.game_name = TextInput(
+            style=discord.TextStyle.long,
+            label="game name:",
+            max_length=500,
             required=True,
             placeholder="game you would like to play"
         )
+        self.add_item(self.game_name)
 
-        details = TextInput(
-            style=discord.TextStyle.long,
-            label="Additional details",
-            required=False,
-            max_length=500,
-            placeholder="comments"
+        self.Tag_id = TextInput(
+            style=discord.TextStyle.short,
+            label="your tag id",
+            required=True,
+            placeholder="your tag id for the game"
         )
+        self.add_item(self.Tag_id)
 
     async def on_submit(self, interaction: discord.Interaction):
         """ this has a summury of checkin submission
@@ -75,14 +140,34 @@ class RegisterModal(Modal):
         Args:
             discord interaction (interaction: discord.Interaction)
         """
-        channel = interaction.guild.get_channel(settings.FEEDBACK_CH)
-        embed = discord.Embed(title="Checkin summury",
-                            description=self.message.value,
-                            color=discord.Color.yellow())
-        embed.set_author(name=self.user.nick)
+        logger.info(f"game detail {self.game_name.value} and user id is {self.Tag_id.value}")
+        remaining_time = self.timeout - (time.time() - self.viewStart_time)
+        try:
+            guild_id = interaction.guild.id
+            channelName = settings.FEEDBACK_CH
+            channel_id = await Details_Cached.get_channel_id(channelName, guild_id)
+            channel = interaction.guild.get_channel(channel_id)
+            logger.info(f"####----member channel details guild_id: {guild_id}, ch_name: {channelName}, \
+                        cha_id: {channel_id} interaction cha_id: {channel}")
+            
+            confirmation = dbc_model.Player.register(interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
+            if confirmation:
+                embed = discord.Embed(title="Checkin summury",
+                                    description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
+                                    color=discord.Color.yellow())
+                embed.set_author(name=self.user.nick)
 
-        await channel.send(embed=embed)
-        await interaction.response.send_message(f"Thank you, {self.user.nick}", ephemeral=True)
+                await channel.send(embed=embed)
+                # await interaction.response.send_message(embed=embed)
+                await interaction.response.send_message(f"Thank you, {self.user.nick}", ephemeral=True)
+
+                player_preference_role_view = PlayerPrefRole(timeout=remaining_time)
+                message = await interaction.response.send_message(view=player_preference_role_view)
+                player_preference_role_view.message = message
+                await player_preference_role_view.wait()
+
+        except Exception as ex:
+            print(f"it is faild on {ex}")
 
     async def on_error(self, interaction: discord.Interaction, error : Exception):
         traceback.print_tb(error.__traceback__)
@@ -118,6 +203,10 @@ class PlayerPrefRole(discord.ui.View):
     selected_pref = None 
     selected_role = None
     slected_list : list = {}
+
+    def __init__(self, *, timeout = 180):
+        super().__init__(timeout=timeout)
+        self.timeout = timeout
     
     @discord.ui.select(
         placeholder="select and set game details",
@@ -127,6 +216,18 @@ class PlayerPrefRole(discord.ui.View):
         ]
         
     )
+    async def disable_all_items(self):
+        for item in self.children:
+            item.disabled = True
+        #await self.message.delete()  --we can delete the messgae at all
+        await self.message.edit(view=self)
+        
+
+
+    async def on_timeout(self) -> None:
+        await self.message.channel.send("this action is timed out, please use a command to register")
+        await self.disable_all_items()
+
     async def select_game_details(self, interaction:discord.Interaction, select_item : discord.ui.Select):
         if select_item.values[0] == "pref" and "pref" not in self.slected_list: 
             self.slected_list['pref'] = True
@@ -160,4 +261,42 @@ class PlayerPrefRole(discord.ui.View):
         self.children[1].disabled= True
         await interaction.message.edit(view=self)
         await interaction.response.defer()
+        self.stop()
+
+'''
+
+class SignUpView(discord.ui.View):
+    def __init__(self, buttonState, timeout = 200):
+        super().__init__(timeout=timeout)
+        self.button_state = buttonState
+        self.timeout = timeout
+        self.viewStart_time = time.time()
+
+    async def disable_all_items(self):
+        for item in self.children:
+            item.disabled = True
+        #await self.message.delete()  --we can delete the messgae at all
+        await self.message.edit(view=self)
+        
+
+
+    async def on_timeout(self) -> None:
+        await self.message.channel.send("this action is timed out, please use a command to register")
+        await self.disable_all_items()
+
+    @discord.ui.button(label="signUp", style=discord.ButtonStyle.success)
+    async def signUp(self, interaction: discord.Interaction, button:discord.ui.Button):
+        remaining_time = self.timeout - (time.time() - self.viewStart_time)
+        self.button_state.set_button_state(True)
+        self.stop()
+        await SharedLogic.execute_signup_model(interaction)
+        await self.disable_all_items()
+        # await interaction.response.send_message("Thnaks for submission")
+        
+
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+    async def Cancel(self, interaction: discord.Interaction):
+        await interaction.response.send_message("sure ignore for now")
+        self.button_state.set_button_state(True)
         self.stop()
