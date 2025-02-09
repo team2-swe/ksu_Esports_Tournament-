@@ -45,35 +45,26 @@ class RegisterModal(Modal, title="Registeration"):
         logger.info(f"game detail {self.game_name.value} and user id is {self.Tag_id.value}")
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
         try:
-            current_channel = interaction.channel
-
-            guild_id = interaction.guild.id
-            channelName = settings.FEEDBACK_CH
-            channel_id = await Details_Cached.get_channel_id(channelName, guild_id)
-            channel = interaction.guild.get_channel(channel_id)
-            logger.info(f"####----member channel details guild_id: {guild_id}, ch_name: {channelName}, \
-                        cha_id: {channel_id} interaction cha_id: {channel}")
-            
             confirmation = dbc_model.Player.register(interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
             if confirmation:
                 embed = discord.Embed(title="Checkin summury",
                                     description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
                                     color=discord.Color.yellow())
-                embed.set_author(name=self.user.nick)
+                embed.set_author(name=self.user)
 
-                await channel.send(embed=embed)
-                # await interaction.response.send_message(embed=embed)
-                #await interaction.response.send_message(f"Thank you, {self.user.nick}", ephemeral=True)
+                if interaction.guild is not None:
+                    guild_id = interaction.guild.id
+                    channelName = settings.FEEDBACK_CH
+                    channel_id = await Details_Cached.get_channel_id(channelName, guild_id)
 
-                player_preference_role_view = PlayerPrefRole(timeout=remaining_time)
-                # message = await current_channel.send(view=player_preference_role_view)
-                message = await interaction.response.send_message(view=player_preference_role_view)
-                player_preference_role_view.message = message
-                
-                await asyncio.sleep(self.timeout)
-                await message.delete()
-                
-                # await player_preference_role_view.wait()
+                    channel = interaction.guild.get_channel(channel_id)
+                    logger.info(f"####----member channel details guild_id: {guild_id}, ch_name: {channelName}, \
+                                cha_id: {channel_id} interaction cha_id: {channel}")
+                    await channel.send(embed=embed)
+                    await interaction.response.send_message(f"{self.user}, you have completed registration", ephemeral=True)
+                else:
+                    await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed, ephemeral=True)
+
 
         except Exception as ex:
             print(f"it is faild on {ex}")
@@ -191,3 +182,54 @@ class PlayerPrefRole(discord.ui.View):
         await interaction.message.edit(view=self)
         await interaction.response.defer()
         self.stop()
+
+class Checkin_RegisterModal(Modal, title="Registeration"):
+    def __init__(self, timeout : int = 550):
+        super().__init__()
+        self.timeout = timeout
+        self.viewStart_time = time.time()
+        self.game_name = TextInput(
+            style=discord.TextStyle.long,
+            label="game name:",
+            max_length=500,
+            required=True,
+            placeholder="game you would like to play"
+        )
+        self.add_item(self.game_name)
+
+        self.Tag_id = TextInput(
+            style=discord.TextStyle.short,
+            label="your tag id",
+            required=True,
+            placeholder="your tag id for the game"
+        )
+        self.add_item(self.Tag_id)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        """ this has a summury of checkin submission
+        info:
+            summury will be send to feedback channel
+        Args:
+            discord interaction (interaction: discord.Interaction)
+        """
+        logger.info(f"game detail {self.game_name.value} and user id is {self.Tag_id.value}")
+        remaining_time = self.timeout - (time.time() - self.viewStart_time)
+        try:
+            confirmation = dbc_model.Player.register(interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
+            if confirmation:
+                embed = discord.Embed(title="Checkin summury",
+                                    description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
+                                    color=discord.Color.yellow())
+                embed.set_author(name=self.user)
+
+                await interaction.response.send_message(f"{self.user}, you have completed registration", ephemeral=True)
+
+                role_pref_view = PlayerPrefRole()
+                # await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed, ephemeral=True)
+                message = await interaction.followup.send(view=role_pref_view)
+
+                await asyncio.sleep(self.timeout)
+                await message.delete()
+
+        except Exception as ex:
+            print(f"it is faild on {ex}")
