@@ -1,98 +1,171 @@
-import peewee
-from common.database_connection import tournament_dbc
+# import peewee
+# from common.database_connection import tournament_dbc
 from datetime import datetime
 from config import settings
+import sqlite3
 
-class Player(peewee.Model):
-    user_id : str = peewee.CharField(unique=True, primary_key=True)
-    game_name : str = peewee.CharField(null=True)
-    game_id : str = peewee.CharField(null=True)
-    tag_id : str = peewee.CharField(null=True)
-    rank : str = peewee.CharField(null=True)
-    isAdmin : bool = peewee.BooleanField(default=False)
-    last_modified = peewee.DateTimeField(default=datetime.now)
-    
-    
-    #to connect the model with DB
-    class Meta:
-        database = tournament_dbc
+logger = settings.logging.getLogger("discord")
 
-    @staticmethod
-    def register(interaction, gamename, tagid):
+class Tournament_DB:
+    def __init__(self, db_name=settings.DATABASE_NAME):
+        self.db_name = db_name
+        self.connection = None
+        self.cursor = None
+        self.db_connect()
+
+    #connection to DB
+    def db_connect(self):
+        self.connection = sqlite3.connect(self.db_name)
+        self.cursor = self.connection.cursor()
+
+    def close_db(self):
+        if self.connection:
+            self.connection.commit()
+            self.connection.close()
+
+class Player(Tournament_DB):
+    
+    def createTable(self):
+
+        player_table_query = """
+            create table if not exists player (
+            user_id bigint PRIMARY KEY,
+            game_name text not null,
+            game_id text,
+            tag_id text text not null,
+            rank text,
+            isAdmin integer not null default 0,
+            last_modified text default (datetime('now'))
+        )
+        """
+        self.cursor.execute(player_table_query)
+        self.connection.commit()
+
+    def register(self, interaction, gamename, tagid):
+        register_query = "insert into player(user_id, game_name, tag_id) values(?, ?, ?)"
+
         try:
             uniq_user_id = interaction.user.id
-            print(f"game name: {gamename} and tage id is {tagid} {interaction.user.id}")
-
-            if not uniq_user_id:
-                print(f"user id is not set")
-            else:    
-                player_created, created = Player.get_or_create(user_id=uniq_user_id)
-                player_created.game_name = gamename
-                player_created.tag_id = tagid
-
-                player_created.save()
-            # # player = Player.create(discord_id=interaction.user.id.id, player_username=interaction.user.id.name, game_name=gamename, tag_id=tagid)
-            # return player
+            if uniq_user_id:
+                self.cursor.execute(register_query, (uniq_user_id, gamename, tagid))
+                self.connection.commit()
+            else:
+                logger.error(f"Registration ahs failed because of Non user id")
         except Exception as ex:
-            print(f"There is an error while item added into DB {ex}")
-    
-    
-    @staticmethod
-    def fetch(interaction):
+            logger.error(f"Registeration has failed with error {ex}")
+
+    def fetch(self, interaction):
+        query = "select * from player where user_id = ?"
         try:
-            player = Player.get(Player.discord_id == interaction.user.id)
-        except peewee.DoesNotExist:
-            player = Player.create(user_id=interaction.user.id)
-        return player
-    
-    @staticmethod
-    def isAcountExist(interaction):
-        acountExist : bool = False
-        try:
-            player = Player.get(Player.user_id == interaction.user.id)
-            if player and player.tag_id:
-                acountExist = True
-        except peewee.DoesNotExist:
-            acountExist = False
-        return acountExist
-    #Dynamic method used for CRUD based on the two methods get_or_create and save() 
-    @staticmethod
-    def update_player_details(player_guidId, player_rank):
-        Player, created = Player.get_or_create(user_id=player_guidId)
-
-        Player.rank = player_rank
-
-        Player.save()
-
-
-
-class Game(peewee.Model):
-    user_id : int = peewee.ForeignKeyField(Player, backref='user_id')
-    game_name :str = peewee.ForeignKeyField(Player, backref='game_name')
-    tag_id :str = peewee.ForeignKeyField(Player, backref='tag_id')
-    preference : str = peewee.CharField(null=True)
-    role : str = peewee.CharField(null=True)
-    rank : str = peewee.CharField(null=True)
-    tier : float = peewee.CharField(null=True)
-    game_date = peewee.DateField
-
-    #to connect the model with DB
-    class Meta:
-        database = tournament_dbc
-
-
-    @staticmethod
-    def fetch(message):
-        try:
-            player = Game.get(Game.user_id == message.author.id)
-        except peewee.DoesNotExist:
-            player = Game.create(user_id=message.author.id, player_username=message.author.tag, game_date=datetime.datetime.now())
-        return player
-    
-    @staticmethod
-    def update_role_pref(interaction, pref, role):
-        try:
-            game = Game.create(user_id=interaction.user.id, preference=pref, role=role, game_date=datetime.datetime.now())
-            return game
+            uniq_user_id = interaction.user.id
+            if uniq_user_id:
+                value = (uniq_user_id,)
+                self.cursor.execute(query, value)
+                return self.cursor.fetchone()
+            else:
+                logger.error(f"fetch ahs failed because of Non user id")
         except Exception as ex:
-            print(f"There is an error while item added into DB {ex}")
+            logger.error(f"fetch has failed with error {ex}")
+    
+    def fetch_by_id(self, user_id):
+        query = "select * from player where user_id = ?"
+        try:
+            value = (user_id,)
+            self.cursor.execute(query, value)
+            return self.cursor.fetchone()
+        except Exception as ex:
+            logger.error(f"fetch_by_id has failed with error {ex}")
+
+    def update_player_details(self, interaction, player_rank):
+        register_query = "insert into player(user_id, rank) values(?, ?)"
+
+        try:
+            uniq_user_id = interaction.user.id
+            if uniq_user_id:
+                self.cursor.execute(register_query, (uniq_user_id, player_rank))
+                self.connection.commit()
+            else:
+                logger.error(f"update player details ahs failed because of Non user id")
+        except Exception as ex:
+            logger.error(f"update player details has failed with error {ex}")
+
+    def isAcountExist(self, interaction):
+        query = "select * from player where user_id = ?"
+        try:
+            uniq_user_id = interaction.user.id
+            if uniq_user_id:
+                value = (uniq_user_id,)
+                self.cursor.execute(query, value)
+                result = self.cursor.fetchone()
+
+                return result is not None
+            else:
+                logger.error(f"is account exsit failed because of Non user id")
+                return False
+        except Exception as ex:
+            logger.error(f"is account exsit  failed with error {ex}")
+
+    def isMemberExist(self, member_id):
+        query = "select * from player where user_id = ?"
+        try:
+            value = (member_id,)
+            self.cursor.execute(query, value)
+            result = self.cursor.fetchone()
+
+            return result is not None
+        except Exception as ex:
+            logger.error(f"isMemberExist has failed with error {ex}")
+
+    def get_all_player(self, game_name):
+        query = "select * from player where game_name = ?"
+        try:
+            value = (game_name,)
+            self.cursor.execute(query, value)
+            return self.cursor.fetchall()
+        except Exception as ex:
+            logger.error(f"get_all_player has failed with error {ex}")
+
+    def remove_player(self, member_id):
+        query = "delete from player where user_id = ?"
+        try:
+            value = (member_id,)
+            self.cursor.execute(query, value)
+            self.connection.commit()
+        except Exception as ex:
+            logger.error(f"unable to delete a user_id {member_id} from db with error {ex}")
+
+class Game(Tournament_DB):
+    
+    def createTable(self):
+
+        game_table_query = """
+            CREATE TABLE IF NOT EXISTS game (
+            user_id bigint not null,
+            game_name text not null,
+            tag_id text text not null,
+            preference text,
+            role text,
+            rank text,
+            tier text,
+            game_date text default (datetime('now')),
+            FOREIGN KEY (user_id) REFERENCES player (user_id) ON DELETE CASCADE,
+            FOREIGN KEY (game_name) REFERENCES player (game_name) ON DELETE CASCADE,
+            FOREIGN KEY (tag_id) REFERENCES player (tag_id) ON DELETE CASCADE,
+            FOREIGN KEY (rank) REFERENCES player (rank) ON DELETE CASCADE
+        )
+        """
+        self.cursor.execute(game_table_query)
+        self.connection.commit()
+
+    def update_role_pref(self, interaction, pref, role):
+        register_query = "insert into game(user_id, preference, role) values(?, ?, ?)"
+
+        try:
+            uniq_user_id = interaction.user.id
+            if uniq_user_id:
+                self.cursor.execute(register_query, (uniq_user_id, pref, role))
+                self.connection.commit()
+            else:
+                logger.error(f"update_role_pref ahs failed because of Non user id")
+        except Exception as ex:
+            logger.error(f"update_role_pref has failed with error {ex}")

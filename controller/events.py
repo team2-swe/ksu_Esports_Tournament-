@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import peewee
 from config import settings
 from model import dbc_model
 from model.button_state import ButtonState, first_login_users
@@ -16,11 +15,11 @@ class EventsController(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member:discord.Member):
-        try:
-            player = dbc_model.Player.get_by_id(member.id)
-        except peewee.DoesNotExist:
-            button_state = ButtonState()
-            views_for_signup = SignUpView(button_state)
+        db = dbc_model.Tournament_DB()
+        isMemberexist = dbc_model.Player.isMemberExist(db, member.id)
+        db.close_db()
+        if not isMemberexist:
+            views_for_signup = SignUpView()
 
             if views_for_signup.children:
 
@@ -44,9 +43,6 @@ class EventsController(commands.Cog):
                 await member.send(embed=embed, file=discord.File(resize_logo, filename=f"resized_logo{logo_extention}"))
                 message = await member.send(view=views_for_signup)
 
-                # await channel.send(embed=embed, file=discord.File(resize_logo, filename=f"resized_logo{logo_extention}"))
-                # message = await channel.send(view=views_for_signup)
-
                 views_for_signup.message = message
 
                 await views_for_signup.wait()
@@ -55,8 +51,13 @@ class EventsController(commands.Cog):
                 logger.error("signup view is not working please take a look")
                 server_owner = member.guild.owner
 
-                await server_owner.send(f"Hello {server_owner} the signup view is not working please check")
+                await server_owner.send(f"Hello {server_owner} the signup view is not working please check")     
 
+    @commands.Cog.listener()
+    async def on_member_remove(self, member : discord.Member):
+        db = dbc_model.Tournament_DB()
+        dbc_model.Player.remove_player(db, member.id)
+        db.close_db()
 
 async def setup(bot):
     await bot.add_cog(EventsController(bot))

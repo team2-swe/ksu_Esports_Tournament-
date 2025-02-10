@@ -1,9 +1,7 @@
 import discord, asyncio
 from discord import app_commands
 from discord.ext import commands
-from model.dbc_model import Player
 from view.checkIn_view import CheckinView
-from model.button_state import ButtonState
 from config import settings
 from common.cached_details import Details_Cached
 
@@ -24,8 +22,7 @@ class Admin_commands(commands.Cog):
             channel = interaction.guild.get_channel(channel_id)
             try:
                 logger.info(f"time out value is {timeout}")
-                button_state = ButtonState()
-                game_checkin_view = CheckinView(button_state, timeout=timeout)  
+                game_checkin_view = CheckinView(timeout=timeout)  
 
                 # await interaction.response.send_message("check in instruction: the checkin time is ready")
                 # message = await interaction.followup.send(view=signUp_view)
@@ -44,13 +41,6 @@ class Admin_commands(commands.Cog):
                 await interaction.response.send_message(f"Checkin time has completed")
             except discord.Forbidden:
                 await channel.send(f"Bot doenst have a permission to send a message in {channel.name}", ephemeral=True)
-
-            if button_state.buttons_state is None:
-                logger.info(f"member id:{interaction.user} loged in")
-
-            if button_state.buttons_state is True:
-                logger.info(f"member id:{interaction.id} successfully signin")
-
         else:
             await interaction.response.send_message(f"Sorry you dont have required permission to use this command", ephemeral=True)
 

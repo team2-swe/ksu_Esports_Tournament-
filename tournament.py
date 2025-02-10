@@ -3,10 +3,9 @@ from discord.ext import commands
 import asyncio
 from config import settings
 from discord.ext.commands import errors
-from model.dbc_model import Player, Game
+from model.dbc_model import Tournament_DB, Player, Game
 from common.database_connection import tournament_dbc
 from common.cached_details import Details_Cached
-from model.dbc_model import Game, Player
 
 
 '''
@@ -27,6 +26,12 @@ async def main():
 
     sys_client = commands.Bot(command_prefix="$", intents=intents)
 
+    # Initialize the database and create tables
+    db = Tournament_DB()
+    Player.createTable(db)
+    Game.createTable(db)
+
+
     @sys_client.event
     async def on_ready():
         logger.info(f"loged into server as {sys_client.user}")
@@ -46,12 +51,6 @@ async def main():
                     logger.info(f"{cmd_file.stem} command is already loaded")
                 except Exception as ex:
                     logger.info(f"Error loading {cmd_file.stem} command: {ex}")
-
-        # await sys_client.load_extension('controller.events')
-        # await sys_client.load_extension('controller.admin_controller')
-        # await sys_client.load_extension('controller.players_detail')
-        # await sys_client.load_extension('controller.giveaway_cog')
-        # await sys_client.load_extension('controller.player_signup')
         
         
         guild = sys_client.get_guild(settings.GUILD_ID)
@@ -60,11 +59,6 @@ async def main():
         sys_client.tree.copy_global_to(guild=guild)
         await sys_client.tree.sync(guild=guild)
 
-
-    
-    # Initialize the database and create tables
-    tournament_dbc.connect()
-    tournament_dbc.create_tables([Game, Player])
 
     #error handling
     @sys_client.event

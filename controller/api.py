@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 from config import settings
-from model.dbc_model import Player
+from model.dbc_model import Tournament_DB ,Player
 import requests
 
 logger = settings.logging.getLogger("discord")
@@ -22,15 +22,18 @@ class Api_Collection(commands.Cog):
 
     @tasks.loop(seconds=600)
     async def fetch_all_players_details(self):
-        all_players = Player.select()
-        for player in all_players:
-            logger.info(f"start to fetch a player discord is: {player.discord_id} details from riot api")
-            player_info = await self.get_player_details(player.game_name, player.tag_id)
+        db = Tournament_DB()
+        #we pass here the game a hard coded
+        all_players = Player.get_all_player(db, "gameA")
+        if all_players is not None:
+            for player in all_players:
+                logger.info(f"start to fetch a player discord is: {player.discord_id} details from riot api")
+                player_info = await self.get_player_details(player.game_name, player.tag_id)
 
-            if player_info:
-                player_rank = player_info.get('rank', 'unranked')
-                player.add_update_player_DB(player.discord_id, player_rank)
-
+                if player_info:
+                    player_rank = player_info.get('rank', 'unranked')
+                    Player.update_player_details(db, player.user_id, player_rank)
+            db.close_db()
     @fetch_all_players_details.before_loop
     async def before_fetch_all_players_details(self):
         await self.bot.wait_until_ready()
@@ -64,17 +67,7 @@ class Api_Collection(commands.Cog):
         except Exception as ex:
             logger.info(f"the request to get user puui is failed")
 
-    @tasks.loop(seconds=300)
-    async def fetch_all_players_details(self):
-        all_players = Player.select()
-        for player in all_players:
-            logger.info(f"start to fetch a player discord is: {player.discord_id} details from riot api")
-            player_info = Api_Collection.get_player_details(player.game_name, player.tag_id)
-
-            if player_info:
-                player_rank = player_info.get('rank', 'unranked')
-                player.add_update_player_DB(player.discord_id, player_rank)
-
+    
     @commands.Cog.listener()
     async def on_message(self, message):
         """this event listner is for admin to stop and run the api schedule
@@ -98,6 +91,7 @@ class Api_Collection(commands.Cog):
 
                 else:
                     await message.channel.send("api task was running", ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(Api_Collection(bot))

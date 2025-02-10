@@ -3,11 +3,6 @@ from discord.ui import *
 from config import settings
 import traceback
 import asyncio
-from model.button_state import ButtonState
-from model.dbc_model import Player
-from config import settings
-from common.cached_details import Details_Cached
-from common import common_scripts
 import time
 from model import dbc_model
 
@@ -37,34 +32,21 @@ class RegisterModal(Modal, title="Registeration"):
 
     async def on_submit(self, interaction: discord.Interaction):
         """ this has a summury of checkin submission
-        info:
-            summury will be send to feedback channel
-        Args:
-            discord interaction (interaction: discord.Interaction)
+            info:
+                summury will be send to feedback channel
+            Args:
+                discord interaction (interaction: discord.Interaction)
         """
         logger.info(f"game detail {self.game_name.value} and user id is {self.Tag_id.value}")
-        remaining_time = self.timeout - (time.time() - self.viewStart_time)
         try:
-            confirmation = dbc_model.Player.register(interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
-            if confirmation:
-                embed = discord.Embed(title="Checkin summury",
-                                    description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
-                                    color=discord.Color.yellow())
-                embed.set_author(name=self.user)
-
-                if interaction.guild is not None:
-                    guild_id = interaction.guild.id
-                    channelName = settings.FEEDBACK_CH
-                    channel_id = await Details_Cached.get_channel_id(channelName, guild_id)
-
-                    channel = interaction.guild.get_channel(channel_id)
-                    logger.info(f"####----member channel details guild_id: {guild_id}, ch_name: {channelName}, \
-                                cha_id: {channel_id} interaction cha_id: {channel}")
-                    await channel.send(embed=embed)
-                    await interaction.response.send_message(f"{self.user}, you have completed registration", ephemeral=True)
-                else:
-                    await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed, ephemeral=True)
-
+            db = dbc_model.Tournament_DB()
+            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
+            db.close_db()
+            embed = discord.Embed(title="Checkin summury",
+                                description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
+                                color=discord.Color.yellow())
+            embed.set_author(name=self.user)
+            await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed)
 
         except Exception as ex:
             print(f"it is faild on {ex}")
@@ -72,8 +54,6 @@ class RegisterModal(Modal, title="Registeration"):
     async def on_error(self, interaction: discord.Interaction, error : Exception):
         traceback.print_tb(error.__traceback__)
         return await super().on_submit(interaction) 
-
-
 
 class PreferenceSelect(discord.ui.Select):
     def __init__(self):
@@ -104,21 +84,12 @@ class RoleSelect(discord.ui.Select):
 class PlayerPrefRole(discord.ui.View):
     selected_pref = None 
     selected_role = None
-    slected_list : list = {}
+    isRoleSelected : bool = False
+    isPrefSelected : bool = False
 
     def __init__(self, *, timeout = 540):
         super().__init__(timeout=timeout)
         self.timeout = timeout
-    
-    # async def disable_all_items(self):
-    #     for item in self.children:
-    #         item.disabled = True
-    #     #await self.message.delete()  --we can delete the messgae at all
-    #     await self.message.edit(view=self)
-
-    # async def on_timeout(self) -> None:
-    #     await self.message.channel.send("this action is timed out, please use a command to register")
-    #     await self.disable_all_items()
 
     @discord.ui.select(
         placeholder="select and set game details",
@@ -128,52 +99,35 @@ class PlayerPrefRole(discord.ui.View):
         ]
     )
     async def select_game_details(self, interaction:discord.Interaction, select_item : discord.ui.Select):
-        if select_item.values[0] == "pref" and "pref" not in self.slected_list: 
-            self.slected_list['pref'] = True
-
-            if select_item in select_item.options:
-                if 'role' in select_item.label.lower():
-                    self.children[0].disabled= True
-                 
+        if select_item.values[0] == "pref":
+            self.children[0].disabled= True   
             game_select = PreferenceSelect()
             self.add_item(game_select)
             await interaction.message.edit(view=self)
             await interaction.response.defer()
+            self.isPrefSelected = True
         else:
-            if 'pref' in select_item:
-                self.children[0].disabled= True
-            
+            self.children[0].disabled= True
             game_select = RoleSelect()
             self.add_item(game_select)
             await interaction.message.edit(view=self)
             await interaction.response.defer()
-
-    async def select_game_details(self, interaction:discord.Interaction, select_item : discord.ui.Select):
-        if select_item.values[0] == "pref" and "pref" not in self.slected_list: 
-            self.slected_list['pref'] = True
-
-            if select_item in select_item.options:
-                if 'role' in select_item.label.lower():
-                    self.children[0].disabled= True
-                 
-            game_select = PreferenceSelect()
-            self.add_item(game_select)
-            await interaction.message.edit(view=self)
-            await interaction.response.defer()
-        else:
-            if 'pref' in select_item:
-                self.children[0].disabled= True
-            
-            game_select = RoleSelect()
-            self.add_item(game_select)
-            await interaction.message.edit(view=self)
-            await interaction.response.defer()
+            self.isRoleSelected = True
 
     async def selected_preferences(self, interaction : discord.Interaction, choices):
+        if self.isRoleSelected and self.isPrefSelected:
+            return
         self.selected_pref = choices 
         self.children[1].disabled= True
         await interaction.message.edit(view=self)
         await interaction.response.defer()
+
+        if not self.isRoleSelected:
+            game_select = RoleSelect()
+            self.add_item(game_select)
+            await interaction.message.edit(view=self)
+            await interaction.response.defer()
+
         self.stop()
 
     async def selected_role(self, interaction : discord.Interaction, choices):
@@ -181,7 +135,13 @@ class PlayerPrefRole(discord.ui.View):
         self.children[1].disabled= True
         await interaction.message.edit(view=self)
         await interaction.response.defer()
-        self.stop()
+
+        if not self.isPrefSelected:
+            game_select = PreferenceSelect()
+            self.add_item(game_select)
+            await interaction.message.edit(view=self)
+            await interaction.response.defer()
+
 
 class Checkin_RegisterModal(Modal, title="Registeration"):
     def __init__(self, timeout : int = 550):
@@ -215,21 +175,22 @@ class Checkin_RegisterModal(Modal, title="Registeration"):
         logger.info(f"game detail {self.game_name.value} and user id is {self.Tag_id.value}")
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
         try:
-            confirmation = dbc_model.Player.register(interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
-            if confirmation:
-                embed = discord.Embed(title="Checkin summury",
-                                    description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
-                                    color=discord.Color.yellow())
-                embed.set_author(name=self.user)
+            db = dbc_model.Tournament_DB()
+            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
+            db.close_db()
+            embed = discord.Embed(title="Checkin summury",
+                                description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
+                                color=discord.Color.yellow())
+            embed.set_author(name=self.user)
 
-                await interaction.response.send_message(f"{self.user}, you have completed registration", ephemeral=True)
+            await interaction.response.send_message(f"{self.user}, you have completed registration", ephemeral=True)
 
-                role_pref_view = PlayerPrefRole()
-                # await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed, ephemeral=True)
-                message = await interaction.followup.send(view=role_pref_view)
+            role_pref_view = PlayerPrefRole()
+            # await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed, ephemeral=True)
+            message = await interaction.followup.send(view=role_pref_view)
 
-                await asyncio.sleep(self.timeout)
-                await message.delete()
+            await asyncio.sleep(self.timeout)
+            await message.delete()
 
         except Exception as ex:
             print(f"it is faild on {ex}")

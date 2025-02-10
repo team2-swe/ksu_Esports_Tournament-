@@ -8,6 +8,7 @@ load_dotenv()
 
 DISCORD_API_SECRET=os.getenv("DISCORD_APITOKEN")
 GUILD_ID = int(os.getenv("DISCORD_GUILD"))
+DATABASE_NAME = os.getenv("DATABASE_NAME")
 # FEEDBACK_CH = int(os.getenv("FEEDBACK_CH"))
 FEEDBACK_CH = os.getenv("FEEDBACK_CH")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
