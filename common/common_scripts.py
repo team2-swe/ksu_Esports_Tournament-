@@ -4,6 +4,9 @@ import random
 from PIL import Image
 import io
 import os
+import discord
+import asyncio
+from view.common_view import PlayerPrefRole
 
 async def get_ksu_logo():
     ksu_logo = pathlib.Path(settings.Base_Dir / "common" / "images").glob("**/*")
@@ -41,3 +44,12 @@ async def ksu_img_resize(imagepath: str, size : tuple=(200, 200)) -> io.BytesIO:
         img_byte_stream.seek(0)
 
     return img_byte_stream, img_extention
+
+async def confirmation_recived(submited : bool = False, timeout : int = 300, interaction: discord.Interaction = None):
+    if submited:
+        role_ref_view = PlayerPrefRole()
+
+        message = await interaction.response.send_message(view=role_ref_view)
+
+        await asyncio.sleep(timeout)
+        await message.delete()
