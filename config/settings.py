@@ -6,7 +6,7 @@ import discord
 from dotenv import load_dotenv
 load_dotenv()
 
-DISCORD_API_SECRET=os.getenv("DISCORD_APITOKEN")
+DISCORD_API_SECRET = os.getenv("DISCORD_APITOKEN")
 GUILD_ID = int(os.getenv("DISCORD_GUILD"))
 # FEEDBACK_CH = int(os.getenv("FEEDBACK_CH"))
 FEEDBACK_CH = os.getenv("FEEDBACK_CH")
