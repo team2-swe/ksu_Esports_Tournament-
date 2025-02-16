@@ -129,6 +129,9 @@ def buildTeams(players):
                             t2_performance += performance
                             continue
                         else:
+                            role, performance = possible_assighn_role(player, team1_roles)
+                            role_assigned_to["team_role"] = role
+                            role_assigned_to["assigned_to"] = player
                             team1.append(role_assigned_to)
                             team1_roles.add(role)
                             t1_performance += performance
@@ -158,6 +161,9 @@ def buildTeams(players):
                             t1_performance += performance
                             continue
                         else:
+                            role, performance = possible_assighn_role(player, team2_roles)
+                            role_assigned_to["team_role"] = role
+                            role_assigned_to["assigned_to"] = player
                             team2.append(role_assigned_to)
                             team2_roles.add(role)
                             t2_performance += performance
@@ -235,11 +241,11 @@ orginal_players = [
 
 async def main():
     sorted_player = await intialSortingPlayer(players=orginal_players)
-    print(sorted_player)
-    # player_performance = await performance(sorted_player)
+    # print(sorted_player)
+    player_performance = await performance(sorted_player)
     # print(player_performance)
-    # t1, t2 = buildTeams(player_performance)
-    # print(f"###team1 {t1}, \n #####team2 {t2}")
+    t1, t2 = buildTeams(player_performance)
+    print(f"###team1 {t1}, \n #####team2 {t2}")
 
 
 import asyncio
