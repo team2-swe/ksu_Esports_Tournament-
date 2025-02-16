@@ -15,3 +15,6 @@ token.json
 Documentation/
 test_folder/
 run.py
+
+tournament_dbc
+match_making/

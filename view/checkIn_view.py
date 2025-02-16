@@ -1,25 +1,20 @@
 import discord
 from discord.ui import *
 from config import settings
-import traceback
 import asyncio
 from model.button_state import ButtonState
-from model.dbc_model import Player
+from model.dbc_model import Tournament_DB, Player
 from config import settings
-from common.cached_details import Details_Cached
-# from signUp_view import SignUpView
 from common import common_scripts
 import time
-from model import dbc_model
 from view.common_view import PlayerPrefRole
 from controller.signup_shared_logic import SharedLogic
 
 logger = settings.logging.getLogger("discord")
 
 class CheckinView(discord.ui.View):
-    def __init__(self, buttonState, timeout = 30):
+    def __init__(self, timeout = 900):
         super().__init__(timeout=timeout)
-        self.button_state = buttonState
         self.timeout = timeout
         self.viewStart_time = time.time()
 
@@ -32,7 +27,8 @@ class CheckinView(discord.ui.View):
 
 
     async def on_timeout(self) -> None:
-        await self.message.channel.send(f"this action is timed out, please use a /register command to register")
+        await self.user_dm.send("checkin has timeout")
+        await self.message.channel.send(f"checkin timedout")
         await self.disable_all_items()
 
 
@@ -41,13 +37,18 @@ class CheckinView(discord.ui.View):
     async def Checkin(self, interaction: discord.Interaction, button:discord.ui.Button):
         user = interaction.user
         dm_to_user = await user.create_dm()
+        self.user_dm = dm_to_user
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
 
-        if Player.isAcountExist(interaction):
+        db = Tournament_DB()
+        isAcountExist: bool = Player.isAcountExist(db, interaction)
+        db.close_db()
+
+        if isAcountExist:
             # self.disable_all_items()
             player_preference_role_view = PlayerPrefRole()
 
-            await dm_to_user.send(f"inprogress checkin.... please fill your prefernec and role for the game", view=player_preference_role_view)
+            await dm_to_user.send(content="please select your role and prefernec", view=player_preference_role_view)
             await interaction.response.send_message(f"your checkin inprogress..., Check your DMs for next step", ephemeral=True)
 
             await asyncio.sleep(self.timeout)

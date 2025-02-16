@@ -8,3 +8,6 @@ test_folder/*
 run.py
 ksu_tournament.db
 cached_details.json
+ksu_Esports_Tournament
+tournament_dbc
+match_making/*

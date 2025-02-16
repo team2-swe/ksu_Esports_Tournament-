@@ -8,3 +8,5 @@ python-gemini-api
 google-api-python-client 
 google-auth-httplib2
 pillow
+backoff
+openai
