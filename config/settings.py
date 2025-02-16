@@ -18,8 +18,12 @@ TOURNAMENT_CH = os.getenv("TOURNAMENT_CH")
 PRIVATE_CH = os.getenv("PRIVATE_CH")
 API_KEY = os.getenv("API_KEY")
 API_URL = os.getenv("API_URL")
-STOP_API_TASK='STOP_API_TASK'
-START_API_TASK='START_API_TASK'
+STOP_API_TASK = os.getenv("STOP_API_TASK")
+START_API_TASK = os.getenv("START_API_TASK")
+
+#for openAi matchmaking
+OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
+PROMPT = os.getenv("prompt")
 
 # pathlib.Path(__file__) this is the current file where the code is present
 File_Dir = pathlib.Path(__file__).parent # This will give the current directory path where the file is present

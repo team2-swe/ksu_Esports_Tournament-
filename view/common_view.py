@@ -58,11 +58,11 @@ class RegisterModal(Modal, title="Registeration"):
 class PreferenceSelect(discord.ui.Select):
     def __init__(self):
         options = [ 
-                   discord.SelectOption(label="1_top_priority", value="tp"),
-                   discord.SelectOption(label="2_jungle_priority", value="jp"),
-                   discord.SelectOption(label="3_mid_priority", value="mp"),
-                   discord.SelectOption(label="4_bot_priority", value="bp"),
-                   discord.SelectOption(label="5_support_priority", value="sp"),
+                   discord.SelectOption(label="Top Lane", value="top"),
+                   discord.SelectOption(label="Jungle", value="jungle"),
+                   discord.SelectOption(label="Mid Lane", value="mid"),
+                   discord.SelectOption(label="Bottom", value="bottom"),
+                   discord.SelectOption(label="Support", value="support"),
         ]
         super().__init__(options=options, placeholder="select your prefernec in order, max 3", max_values=3)
 
@@ -115,8 +115,7 @@ class PlayerPrefRole(discord.ui.View):
             self.isRoleSelected = True
 
     async def selected_preferences(self, interaction : discord.Interaction, choices):
-        if self.isRoleSelected and self.isPrefSelected:
-            return
+        
         self.selected_pref = choices 
         self.children[1].disabled= True
         await interaction.message.edit(view=self)
@@ -127,10 +126,13 @@ class PlayerPrefRole(discord.ui.View):
             self.add_item(game_select)
             await interaction.message.edit(view=self)
             await interaction.response.defer()
-
+        db = dbc_model.Tournament_DB()
+        dbc_model.Game.update_pref(db, interaction, self.selected_pref)
+        db.close_db()
         self.stop()
 
     async def selected_role(self, interaction : discord.Interaction, choices):
+        
         self.selected_role = choices 
         self.children[1].disabled= True
         await interaction.message.edit(view=self)
@@ -141,7 +143,9 @@ class PlayerPrefRole(discord.ui.View):
             self.add_item(game_select)
             await interaction.message.edit(view=self)
             await interaction.response.defer()
-
+        db = dbc_model.Tournament_DB()
+        dbc_model.Game.update_role(db, interaction, self.selected_role)
+        db.close_db()
 
 class Checkin_RegisterModal(Modal, title="Registeration"):
     def __init__(self, timeout : int = 550):

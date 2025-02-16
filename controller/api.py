@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 from config import settings
-from model.dbc_model import Tournament_DB ,Player
+from model.dbc_model import Tournament_DB ,Player, Game
 import requests
 
 logger = settings.logging.getLogger("discord")
@@ -24,15 +24,20 @@ class Api_Collection(commands.Cog):
     async def fetch_all_players_details(self):
         db = Tournament_DB()
         #we pass here the game a hard coded
-        all_players = Player.get_all_player(db, "gameA")
+        all_players = Player.get_all_player(db)
         if all_players is not None:
             for player in all_players:
-                logger.info(f"start to fetch a player discord is: {player.discord_id} details from riot api")
-                player_info = await self.get_player_details(player.game_name, player.tag_id)
+                logger.info(f"start to fetch a player discord is: {player[0]} details from riot api")
+                player_info = await self.get_player_details(player[1], player[2])
 
-                if player_info:
-                    player_rank = player_info.get('rank', 'unranked')
-                    Player.update_player_details(db, player.user_id, player_rank)
+                if player_info and player_info[0]['rank']:
+                    # player_rank = player_info.get('rank', 'unranked')
+                    player_tier = player_info[0]['tier']
+                    player_rank = player_info[0]['rank']
+                    player_wins = player_info[0]['wins']
+                    player_losses = player_info[0]['losses']
+                    
+                    Game.update_player_API_info(db, player[0], player_tier, player_rank, player_wins, player_losses)
             db.close_db()
     @fetch_all_players_details.before_loop
     async def before_fetch_all_players_details(self):
@@ -40,24 +45,32 @@ class Api_Collection(commands.Cog):
 
 
     async def get_player_details(interaction: discord.Interaction, game_name, tag_id):
-        headers = {
-            'Authorization': f'Bearer {settings.API_KEY}',
-            'Content-Type': 'application/json'
-            }
+        # headers = {
+        #     'Authorization': f'Bearer {settings.API_KEY}',
+        #     'Content-Type': 'application/json'
+        #     }
+        headers = {'X-Riot-Token': settings.API_KEY}
 
-        url = f'https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_id}'
-        url_puuid = f'https://na1.api.riotgames.com//lol/summoner/v4/summoners/by-puuid' 
+        url = f'https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_id}?api_key={settings.API_KEY}'
+        url_puuid = f"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid"
+        url_summonId = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner"
         try: 
-            response = requests.get(url, headers=headers)
+            # response = requests.get(url, headers=headers)
+            response = requests.get(url=url, headers=headers)
 
             if response.status_code == 200:
                 account_info = response.json()
                 puuid = account_info['puuid']
 
                 if puuid is not None:
-                    response = requests.get(f"{url_puuid}/{puuid}", headers=headers)
+                    response = requests.get(f"{url_puuid}/{puuid}?api_key={settings.API_KEY}", headers=headers)
                     if response.status_code==200:
-                        return response.json()
+                        result_format = response.json()
+                        summoner_id = result_format['id']
+
+                        if summoner_id is not None:
+                            response = requests.get(f"{url_summonId}/{summoner_id}?api_key={settings.API_KEY}", headers=headers)
+                            return response.json()
                     else:
                         logger.info(f"not result for user puuid {puuid} and url: {url_puuid}")
                         return
