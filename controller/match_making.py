@@ -1,3 +1,4 @@
+import asyncio
 from collections import defaultdict
 import copy
 
@@ -6,6 +7,28 @@ import copy
     step2: if players have same tier sort based on rank
     step3: if players have same tier & rank then sort based on WR
 """
+
+from colorama import Fore, init, Style
+
+init(autoreset=True)
+
+role_colors = {
+    "mid": Fore.BLUE,
+    "top": Fore.RED,
+    "jungle": Fore.GREEN,
+    "support": Fore.YELLOW,
+    "bottom": Fore.MAGENTA,
+    "forced": Fore.LIGHTBLACK_EX
+}
+
+rank_colors = {
+    "I": Fore.RED,
+    "II": Fore.GREEN,
+    "III": Fore.YELLOW,
+    "IV": Fore.BLUE,
+    "V": Fore.MAGENTA
+}
+
 async def intialSortingPlayer(players):
     #define custom order of tier & rank
     tier_order = {"challenger": 1, "grandmaster": 2, "master": 3, "diamond": 4, "emerald": 5, "platinum": 6, "gold": 7, "silver": 8, "bronze": 9, "iron": 10, "default": 11}
@@ -195,7 +218,7 @@ def verify_swap_teams(t1, t2):
         for player_name, gameid in player.items():
             group_t1[gameid].append(player_name)
 
-    for player in T2:
+    for player in t2:
         for player_name, gameid in player.items():
             group_t2[gameid].append(player_name)
 
@@ -239,14 +262,59 @@ orginal_players = [
 ]
 
 
-async def main():
+def format_player_info(player_entry):
+    """
+    Returns a formatted string showing the player's tier, rank, assigned role, and their role preferences.
+    Colors are applied according to the role and rank mappings.
+    """
+    assigned_player = player_entry["assigned_to"]
+    assigned_role = player_entry.get("team_role", "N/A")
+    # Capitalize each field
+    user_id = assigned_player["user_id"].capitalize()
+    tier = assigned_player["tier"].capitalize()
+    rank = assigned_player["rank"]
+
+    # Color the rank using Colorama mapping
+    colored_rank = f"{rank_colors.get(rank, '')}{rank}{Style.RESET_ALL}"
+
+    # Process and color each role in the player's preference list (capitalize them)
+    colored_roles = []
+    for role in assigned_player["role"]:
+        role_lower = role.lower()
+        color = role_colors.get(role_lower, "")
+        colored_roles.append(f"{color}{role.capitalize()}{Style.RESET_ALL}")
+    colored_roles_str = ", ".join(colored_roles)
+
+    # Process the assigned role (capitalize) and color it
+    assigned_role_str = assigned_role.capitalize() if assigned_role != "N/A" else "N/A"
+    assigned_role_lower = assigned_role.lower() if assigned_role != "N/A" else "N/A"
+    assigned_role_color = role_colors.get(assigned_role_lower, "")
+    colored_assigned_role = f"{assigned_role_color}{assigned_role_str}{Style.RESET_ALL}" if assigned_role != "N/A" else "N/A"
+
+    # Build the output string with the Assigned Role in the first column.
+    return (f"Assigned Role: {colored_assigned_role} | "
+            f"User: {user_id} | Tier: {tier} | Rank: {colored_rank} | Roles: {colored_roles_str}")
+
+
+def print_team(team, team_name, color_output=False):
+    print(f"========== {team_name} =============")
+    for player in team:
+        if color_output:
+            print(format_player_info(player))
+        else:
+            assigned = player["assigned_to"]
+            print(f"Assigned Role: {player.get('team_role', 'N/A')} | User: {assigned['user_id']} | "
+                  f"Tier: {assigned['tier']} | Rank: {assigned['rank']} | Roles: {', '.join(assigned['role'])}")
+
+async def main(debug=False, color_output=False):
     sorted_player = await intialSortingPlayer(players=orginal_players)
-    # print(sorted_player)
-    player_performance = await performance(sorted_player)
-    # print(player_performance)
-    t1, t2 = buildTeams(player_performance)
-    print(f"###team1 {t1}, \n #####team2 {t2}")
+    if debug:
+        player_performance = await performance(sorted_player)
+        t1, t2 = buildTeams(player_performance)
+        print_team(t1, "Team 1", color_output)
+        print_team(t2, "Team 2", color_output)
+    else:
+        print("Debug flag not enabled. No team output.")
 
 
-import asyncio
-asyncio.run(main())
+asyncio.run(main(debug=False, color_output=False))
