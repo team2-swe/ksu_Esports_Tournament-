@@ -1,70 +1,73 @@
 from collections import defaultdict
 import copy
 
-""" Intial step sort player based on tier, rank and win ratio based on
-    step1: sort based on player tier
-    step2: if players have same tier sort based on rank
-    step3: if players have same tier & rank then sort based on WR
+""" Initial step sort player based on Tier, Rank and win ratio based on
+    step1: sort based on player Tier
+    step2: if players have same Tier sort based on Rank
+    step3: if players have same Tier & Rank then sort based on WR
 """
 async def intialSortingPlayer(players):
-    #define custom order of tier & rank
-    tier_order = {"challenger": 1, "grandmaster": 2, "master": 3, "diamond": 4, "emerald": 5, "platinum": 6, "gold": 7, "silver": 8, "bronze": 9, "iron": 10, "default": 11}
-    rank_order = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5}
+    #define custom order of Tier & Rank
+    Tier_order = {"Challenger": 1, "Grandmaster": 2, "Master": 3, "Diamond": 4, "Emerald": 5, "Platinum": 6, "Gold": 7,
+                  "Silver": 8, "Bronze": 9, "Iron": 10, "Default": 11}
+    Rank_order = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5}
 
-    sortedPlayers = sorted(players, key=lambda pl: (tier_order[pl['tier']], rank_order[pl['rank']], -pl['wr']))
+    sortedPlayers = sorted(players, key=lambda pl: (Tier_order[pl['Tier']], Rank_order[pl['Rank']], -pl['WR']))
     
     return sortedPlayers
 
-""" for sorted player calculate their relative perfomance based on their role preference order
-    Assumption: player effective output according to theire role prefernce is 5% reduce
-                set SkillFactor_set for each tier based on different considerations, and each skill 
-                    has 5% skill advance/difference than the next tier
+""" for sorted player calculate their relative performance based on their Role preference order
+    Assumption: player effective output according to their Role preference is 5% reduce
+                set SkillFactor_set for each Tier based on different considerations, and each skill 
+                    has 5% skill advance/difference than the next Tier
 
-    A standard matimatical formula for player skill factor based on the above assumptions and conditions
-        relative_performance = player_skillFactor*0.75 + (1- pref_penality/100)*0.25
+    A standard mathematical formula for player skill factor based on the above assumptions and conditions
+        relative_performance = player_skillFactor*0.75 + (1- pref_penalty/100)*0.25
 
-    for player doesnt have role prefernece then the forced asighned role set as playerPerfomanceOfRole['forced']
+    for player doesnt have Role preference then the forced assigned Role set as player PerformanceOfRole['forced']
 """
 async def performance(players):
     players_output = []
-    SkillFactor_set = {"default": 0.0, "iron": 1.0, "bronze": 1.05, "silver": 1.10, "gold": 1.15, "platinum": 1.20, "emerald": 1.25, "diamond": 1.30, "master": 1.35, "grandmaster": 1.40, "challenger": 1.45}
+    SkillFactor_set = {"Default": 0.0, "Iron": 1.0, "Bronze": 1.05, "Silver": 1.10, "Gold": 1.15, "Platinum": 1.20,
+                       "Emerald": 1.25, "Diamond": 1.30, "Master": 1.35, "Grandmaster": 1.40, "Challenger": 1.45}
 
     for player in players:
         playerPerfomanceOfRole = {}
-        player_role = player["role"]
-        #get player skill factor based on their tier
-        player_skillFactor = SkillFactor_set.get(player["tier"])
+        player_Role = player["Role"]
+        #get player skill factor based on their Tier
+        player_skillFactor = SkillFactor_set.get(player["Tier"])
 
-        #to calculate the relative performance of each player based on their tier and role_preference
+        #to calculate the relative performance of each player based on their Tier and Role_preference
         totalPlayerRolesProcessd = 0
-        for i, role in enumerate(player_role):
+        for i, Role in enumerate(player_Role):
             pref_penality = i*5
 
             relative_performance = player_skillFactor*0.75 + (1- pref_penality/100)*0.25
-            playerPerfomanceOfRole[role] = relative_performance
+            playerPerfomanceOfRole[Role] = relative_performance
             totalPlayerRolesProcessd += 1
 
         if(totalPlayerRolesProcessd < 5):
             playerPerfomanceOfRole['forced'] = player_skillFactor*0.75
 
-        player["roleBasedPerformance"] = playerPerfomanceOfRole
+        player["RoleBasedPerformance"] = playerPerfomanceOfRole
 
         players_output.append(player)
     return players_output
-async def relativePerformance(tier, role_preference):
+async def relativePerformance(Tier, Role_preference):
     playerPerfomanceOfRole = {}
-    SkillFactor_set = {"default": 0.0, "iron": 1.0, "bronze": 1.05, "silver": 1.10, "gold": 1.15, "platinum": 1.20, "emerald": 1.25, "diamond": 1.30, "master": 1.35, "grandmaster": 1.40, "challenger": 1.45}
+    SkillFactor_set = {"Default": 0.0, "Iron": 1.0, "Bronze": 1.05, "Silver": 1.10, "Gold": 1.15, "Platinum": 1.20,
+                       "Emerald": 1.25, "Diamond": 1.30, "Master": 1.35, "Grandmaster": 1.40, "Challenger": 1.45}
 
-    #get player skill factor based on their tier
-    player_skillFactor = SkillFactor_set.get(tier)
+    #get player skill factor based on their Tier
+    player_skillFactor = SkillFactor_set.get(Tier)
 
-    #to calculate the relative performance of each player based on their tier and role_preference
+    #to calculate the relative performance of each player based on their Tier and Role_preference
     totalRolePlayerSelected = 0
-    for i, role in enumerate(role_preference):
+    for i, Role in enumerate(Role_preference):
         pref_penality = i*5
 
         relative_performance = player_skillFactor*0.75 + (1- pref_penality/100)*0.25
-        playerPerfomanceOfRole[role] = relative_performance
+        playerPerfomanceOfRole[Role] = relative_performance
         totalRolePlayerSelected+=1
 
     if(totalRolePlayerSelected <= 5):
@@ -75,110 +78,110 @@ async def relativePerformance(tier, role_preference):
 def teamPerformance(team):
     totalRelativePerformance = 0
     for player in team:
-        totalRelativePerformance += sum(player["roleBasedPerformance"].values())
+        totalRelativePerformance += sum(player["RoleBasedPerformance"].values())
     return totalRelativePerformance
 
-def possible_assighn_role(player, teamRoleSet):
-    for role, performance in player["roleBasedPerformance"].items():
-        if role not in teamRoleSet:
-            return role, performance
-        if role == "forced":
-            return role, performance
+def possible_assighn_Role(player, teamRoleSet):
+    for Role, performance in player["RoleBasedPerformance"].items():
+        if Role not in teamRoleSet:
+            return Role, performance
+        if Role == "forced":
+            return Role, performance
     return None, None
 
-def isPlayerRoleprefered(player, nextPlayer, role):
-    return player["roleBasedPerformance"].get(role, 0) > nextPlayer["roleBasedPerformance"].get(role, 0)
+def isPlayerRoleprefered(player, nextPlayer, Role):
+    return player["RoleBasedPerformance"].get(Role, 0) > nextPlayer["RoleBasedPerformance"].get(Role, 0)
 
-def assignPlayer_toTeam(player, team1, team2, team1_roles, team2_roles):
-    role, performance = possible_assighn_role(player, team1_roles)
-    if role and performance:
+def assignPlayer_toTeam(player, team1, team2, team1_Roles, team2_Roles):
+    Role, performance = possible_assighn_Role(player, team1_Roles)
+    if Role and performance:
         team1.append(player)
-        team1_roles.add(role)
+        team1_Roles.add(Role)
         return "T1"
     
-    role, performance = possible_assighn_role(player, team2_roles)
-    if role and performance:
+    Role, performance = possible_assighn_Role(player, team2_Roles)
+    if Role and performance:
         team2.append(player)
-        team2_roles.add(role)
+        team2_Roles.add(Role)
         return "T2"
     
     return None
 
 def buildTeams(players):
     team1, team2 = [], []
-    team1_roles, team2_roles = set(), set()
+    team1_Roles, team2_Roles = set(), set()
     t1_performance = 0
     t2_performance = 0
     for player in players:
         player_index = players.index(player)
         next_player = players[player_index + 1] if player_index + 1 < len(players) else None
 
-        role_assigned_to = {}
+        Role_assigned_to = {}
         if len(team1) != 0 and len(team2) <= len(team1):
             if t2_performance <= t1_performance:
-                role, performance = possible_assighn_role(player, team2_roles)
-                role_assigned_to["team_role"] = role
-                role_assigned_to["assigned_to"] = player
-                if role:
+                Role, performance = possible_assighn_Role(player, team2_Roles)
+                Role_assigned_to["team_Role"] = Role
+                Role_assigned_to["assigned_to"] = player
+                if Role:
                     # next_player = next((p for p in players if p != player), None)
                     if next_player:
-                        next_player_role, next_player_performance = possible_assighn_role(next_player, team2_roles)
-                        if next_player_role and performance >= next_player_performance:
-                            team2.append(role_assigned_to)
-                            team2_roles.add(role)
+                        next_player_Role, next_player_performance = possible_assighn_Role(next_player, team2_Roles)
+                        if next_player_Role and performance >= next_player_performance:
+                            team2.append(Role_assigned_to)
+                            team2_Roles.add(Role)
                             t2_performance += performance
                             continue
                         else:
-                            team1.append(role_assigned_to)
-                            team1_roles.add(role)
+                            team1.append(Role_assigned_to)
+                            team1_Roles.add(Role)
                             t1_performance += performance
                     else:
-                        team2.append(role_assigned_to)
-                        team2_roles.add(role)
+                        team2.append(Role_assigned_to)
+                        team2_Roles.add(Role)
             else:
-                role, performance = possible_assighn_role(player, team1_roles)
-                role_assigned_to["team_role"] = role
-                role_assigned_to["assigned_to"] = player
-                if role:
-                    team1.append(role_assigned_to)
-                    team1_roles.add(role)
+                Role, performance = possible_assighn_Role(player, team1_Roles)
+                Role_assigned_to["team_Role"] = Role
+                Role_assigned_to["assigned_to"] = player
+                if Role:
+                    team1.append(Role_assigned_to)
+                    team1_Roles.add(Role)
                     t1_performance += performance
         else:
             if t1_performance <= t2_performance:
-                role, performance = possible_assighn_role(player, team1_roles)
-                role_assigned_to["team_role"] = role
-                role_assigned_to["assigned_to"] = player
-                if role:
+                Role, performance = possible_assighn_Role(player, team1_Roles)
+                Role_assigned_to["team_Role"] = Role
+                Role_assigned_to["assigned_to"] = player
+                if Role:
                     # next_player = next((p for p in players if p != player), None)
                     if next_player:
-                        next_player_role, next_player_performance = possible_assighn_role(next_player, team1_roles)
-                        if next_player_role and performance >= next_player_performance:
-                            team1.append(role_assigned_to)
-                            team1_roles.add(role)
+                        next_player_Role, next_player_performance = possible_assighn_Role(next_player, team1_Roles)
+                        if next_player_Role and performance >= next_player_performance:
+                            team1.append(Role_assigned_to)
+                            team1_Roles.add(Role)
                             t1_performance += performance
                             continue
                         else:
-                            team2.append(role_assigned_to)
-                            team2_roles.add(role)
+                            team2.append(Role_assigned_to)
+                            team2_Roles.add(Role)
                             t2_performance += performance
                     else:
-                        team1.append(role_assigned_to)
-                        team1_roles.add(role)
+                        team1.append(Role_assigned_to)
+                        team1_Roles.add(Role)
             else:
-                role, performance = possible_assighn_role(player, team2_roles)
-                role_assigned_to["team_role"] = role
-                role_assigned_to["assigned_to"] = player
-                if role:
-                    team2.append(role_assigned_to)
-                    team2_roles.add(role)
+                Role, performance = possible_assighn_Role(player, team2_Roles)
+                Role_assigned_to["team_Role"] = Role
+                Role_assigned_to["assigned_to"] = player
+                if Role:
+                    team2.append(Role_assigned_to)
+                    team2_Roles.add(Role)
                     t2_performance += performance
                     
     return team1, team2
 
 
-"""this is to makes sure same player not teamup for tournamantes
+"""this is to makes sure same player not teamed up for tournaments
     method: verify_swap_teams
-        grouping each team based on their respective game history based on (gameid/customid)
+        grouping each team based on their respective game history based on (gameid/custoMid)
 
 """
 def verify_swap_teams(t1, t2):
@@ -220,16 +223,16 @@ def verify_swap_teams(t1, t2):
 
 
 orginal_players = [
-    {'user_id': 'player1', 'tier': 'platinum', 'rank': 'II', 'wr': 56, 'role': ['mid','top','Jungle']},
-    {'user_id': 'player2', 'tier': 'gold', 'rank': 'II', 'role': ['support','mid'], 'wr': 73},
-    {'user_id': 'player3', 'tier': 'platinum', 'rank': 'IV', 'wr': 77, 'role': ['bottom','top','Jungle','mid','support']},
-    {'user_id': 'player4', 'tier': 'bronze', 'rank': 'III', 'wr': 78, 'role': ['Jungle']},
-    {'user_id': 'player5', 'tier': 'gold', 'rank': 'I', 'wr': 69, 'role': ['top','Jungle','mid']},
-    {'user_id': 'player6', 'tier': 'bronze', 'rank': 'I', 'wr': 86, 'role': ['top','Jungle']},
-    {'user_id': 'player7', 'tier': 'gold', 'rank': 'IV', 'wr': 47, 'role': ['bottom','mid','top','Jungle','support']},
-    {'user_id': 'player8', 'tier': 'platinum', 'rank': 'V', 'wr': 47, 'role': ['mid']},
-    {'user_id': 'player9', 'tier': 'diamond', 'rank': 'II', 'wr': 75, 'role': ['mid','top','Jungle']},
-    {'user_id': 'player10', 'tier': 'master', 'rank': 'II', 'wr': 93, 'role': ['top','Bottom','Jungle','support']}
+    {'user_id': 'player1', 'Tier': 'Platinum', 'Rank': 'II', 'WR': 56, 'Role': ['Mid','Top','Jungle']},
+    {'user_id': 'player2', 'Tier': 'Gold', 'Rank': 'II', 'Role': ['Support','Mid'], 'WR': 73},
+    {'user_id': 'player3', 'Tier': 'Platinum', 'Rank': 'IV', 'WR': 77, 'Role': ['Bottom','Top','Jungle','Mid','Support']},
+    {'user_id': 'player4', 'Tier': 'Bronze', 'Rank': 'III', 'WR': 78, 'Role': ['Jungle']},
+    {'user_id': 'player5', 'Tier': 'Gold', 'Rank': 'I', 'WR': 69, 'Role': ['Top','Jungle','Mid']},
+    {'user_id': 'player6', 'Tier': 'Bronze', 'Rank': 'I', 'WR': 86, 'Role': ['Top','Jungle']},
+    {'user_id': 'player7', 'Tier': 'Gold', 'Rank': 'IV', 'WR': 47, 'Role': ['Bottom','Mid','Top','Jungle','Support']},
+    {'user_id': 'player8', 'Tier': 'Platinum', 'Rank': 'V', 'WR': 47, 'Role': ['Mid']},
+    {'user_id': 'player9', 'Tier': 'Diamond', 'Rank': 'II', 'WR': 75, 'Role': ['Mid','Top','Jungle']},
+    {'user_id': 'player10', 'Tier': 'Master', 'Rank': 'II', 'WR': 93, 'Role': ['Top','Bottom','Jungle','Support']}
 ]
 
 

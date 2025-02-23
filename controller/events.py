@@ -27,7 +27,7 @@ class EventsController(commands.Cog):
                 resize_logo, logo_extention  = await common_scripts.ksu_img_resize(ksu_logo_path)
                 # logo = discord.File(resize_logo, filename=resize_logo.name)
 
-                logger.info(f"log path is : {resize_logo} and file name {logo_extention}")
+                logger.info(f"Log path is: {resize_logo} and file name {logo_extention}")
 
                 embed = discord.Embed(
                     color=discord.Colour.dark_teal(),
@@ -35,7 +35,7 @@ class EventsController(commands.Cog):
                     .................................................................\
                         ........................................................\
                             .................................",
-                    title=f"welcome to {member.guild.name} server"
+                    title=f"Welcome to {member.guild.name} server"
                 )
                 # embed.set_image(url=f"{ksu_logo_path}")
                 embed.set_thumbnail(url=f"attachment://resized_logo{logo_extention}")
@@ -48,10 +48,10 @@ class EventsController(commands.Cog):
                 await views_for_signup.wait()
 
             else:
-                logger.error("signup view is not working please take a look")
+                logger.error("Signup view is not working please go correct the issue")
                 server_owner = member.guild.owner
 
-                await server_owner.send(f"Hello {server_owner} the signup view is not working please check")     
+                await server_owner.send(f"Hello {server_owner} , the signup view is not working please check")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member : discord.Member):

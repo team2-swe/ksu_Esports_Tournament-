@@ -7,11 +7,11 @@ class PlayerDetails(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="playersinfo", description="validating a player")
+    @app_commands.command(name="playersinfo", description="Validating a player")
     async def player(self, interaction: discord.Interaction):
         db = Tournament_DB()
         confirm_result = Player.fetch(db, interaction)
-        await interaction.response.send_message(f"your account {confirm_result.discord_id} is created")
+        await interaction.response.send_message(f"Your account {confirm_result.discord_id} has been created")
         db.close_db()
 
 async def setup(bot):

@@ -83,14 +83,14 @@ class Api_Collection(commands.Cog):
     
     @commands.Cog.listener()
     async def on_message(self, message):
-        """this event listner is for admin to stop and run the api schedule
+        """this event listener is for admin to stop and run the api schedule
         """
         if message.content.strip().lower() == settings.STOP_API_TASK.strip().lower():
             #check the permission if the user is admin
             if isinstance(message.author, discord.Member) and message.author.guild_permissions.administrator:
                 if self.fetch_all_players_details.is_running():
                     self.fetch_all_players_details.cancel()
-                    await message.channel.send("api task is stoped", ephemeral=True)
+                    await message.channel.send("api task is stopped", ephemeral=True)
 
                 else:
                     await message.channel.send("api task wasnt running", ephemeral=True)
