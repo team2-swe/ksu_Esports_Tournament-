@@ -4,15 +4,8 @@ import asyncio
 from config import settings
 from discord.ext.commands import errors
 from model.dbc_model import Tournament_DB, Player, Game
-<<<<<<< HEAD
 from common.cached_details import Details_Cached
-=======
-# from common.database_connection import tournament_dbc
-# from common import database_connection
-# from common.cached_details import Details_Cached
 from common import cached_details
->>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64
-
 
 '''
 we use bot.start(): 
