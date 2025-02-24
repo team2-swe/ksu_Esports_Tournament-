@@ -21,6 +21,7 @@ class Tournament_DB:
         self.connection = sqlite3.connect(self.db_name)
         # self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
+        self.cursor.execute("PRAGMA foreign_keys = ON;")
 
     def close_db(self):
         if self.connection:
@@ -34,7 +35,7 @@ class Player(Tournament_DB):
         player_table_query = """
             create table if not exists player (
             user_id bigint PRIMARY KEY,
-            game_name text not null,
+            game_name text,
             game_id text,
             tag_id text text not null,
             isAdmin integer not null default 0,
@@ -71,7 +72,7 @@ class Player(Tournament_DB):
             logger.error(f"fetch has failed with error {ex}")
     
     def fetch_by_id(self, user_id):
-        query = "select * from player where user_id = ?"
+        query = "select user_id, game_name from player where user_id = ?"
         try:
             value = (user_id,)
             self.cursor.execute(query, value)
@@ -144,7 +145,7 @@ class Game(Tournament_DB):
         game_table_query = """
             CREATE TABLE IF NOT EXISTS game (
             user_id bigint not null,
-            game_name text not null,
+            game_name text PRIMARY KEY,
             tier text,
             rank text,
             role text,
@@ -152,20 +153,20 @@ class Game(Tournament_DB):
             losses integer,
             wr float generated always as (wins * 1.0 / (wins + losses)) stored,
             game_date text default (datetime('now')),
-            FOREIGN KEY (user_id) REFERENCES player (user_id) ON DELETE CASCADE,
-            FOREIGN KEY (game_name) REFERENCES player (game_name) ON DELETE CASCADE
+            FOREIGN KEY (user_id) REFERENCES player (user_id) ON DELETE CASCADE
         )
         """
         self.cursor.execute(game_table_query)
         self.connection.commit()
 
     def update_pref(self, interaction, pref):
-        register_query = "insert into game(user_id, role) values(?, ?)"
+        register_query = "insert or replace into game(user_id, game_name, role) values(?, ?, ?)"
         pref = json.dumps(pref)
         try:
             uniq_user_id = interaction.user.id
             if uniq_user_id:
-                self.cursor.execute(register_query, (uniq_user_id, pref))
+                pl = Player.fetch_by_id(self, uniq_user_id)
+                self.cursor.execute(register_query, (uniq_user_id,pl[1], pref))
                 self.connection.commit()
             else:
                 logger.error(f"update_role ahs failed because of Non user id")
@@ -181,19 +182,18 @@ class Game(Tournament_DB):
                 self.cursor.execute(register_query, (uniq_user_id, role))
                 self.connection.commit()
             else:
-                logger.error(f"update_role ahs failed because of Non user id")
+                logger.error(f"update_role has failed because of None user id")
         except Exception as ex:
             logger.error(f"update_role has failed with error {ex}")
 
-    def update_player_API_info(self, player_id, tier, rank, wins, losses):
-        register_query = "insert into Game(user_id, tier, rank, wins, losses) values(?, ?, ?, ?, ?, ?)"
-
+    def update_player_API_info(self, player_id, game_name, tier, rank, wins, losses):
+        register_query = "insert or replace into Game(user_id, game_name, tier, rank, wins, losses) values(?, ?, ?, ?, ?, ?)"
         try:
-            self.cursor.execute(register_query, (player_id, tier, rank, wins, losses))
+            self.cursor.execute(register_query, (player_id, game_name, tier, rank, wins, losses))
             self.connection.commit()
             
         except Exception as ex:
-            logger.error(f"update_player_API_info has failed with error {ex}")
+            logger.error(f"update_player_API_info {game_name} has failed with error {ex}")
 
     def fetchGameDetails(self):
         query = "select user_id, game_name, tier, rank, role, wr from Game"

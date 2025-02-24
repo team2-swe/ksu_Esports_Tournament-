@@ -37,7 +37,7 @@ class Api_Collection(commands.Cog):
                     player_wins = player_info[0]['wins']
                     player_losses = player_info[0]['losses']
                     
-                    Game.update_player_API_info(db, player[0], player_tier, player_rank, player_wins, player_losses)
+                    Game.update_player_API_info(db, player[0], player[1], player_tier, player_rank, player_wins, player_losses)
             db.close_db()
     @fetch_all_players_details.before_loop
     async def before_fetch_all_players_details(self):
@@ -76,7 +76,7 @@ class Api_Collection(commands.Cog):
                         return
             else:
                 print(f"not result for user tage_id: {tag_id} and url: {url}")
-                return
+
         except Exception as ex:
             logger.info(f"the request to get user puui is failed")
 
@@ -90,20 +90,20 @@ class Api_Collection(commands.Cog):
             if isinstance(message.author, discord.Member) and message.author.guild_permissions.administrator:
                 if self.fetch_all_players_details.is_running():
                     self.fetch_all_players_details.cancel()
-                    await message.channel.send("api task is stoped", ephemeral=True)
+                    await message.channel.send("api task is stoped")
 
                 else:
-                    await message.channel.send("api task wasnt running", ephemeral=True)
+                    await message.channel.send("api task wasnt running")
 
         if message.content.strip().lower() == settings.START_API_TASK.strip().lower():
             #check the permission if the user is admin
             if isinstance(message.author, discord.Member) and message.author.guild_permissions.administrator:
                 if not self.fetch_all_players_details.is_running():
                     self.fetch_all_players_details.start()
-                    await message.channel.send("api task start", ephemeral=True)
+                    await message.channel.send("api task start")
 
                 else:
-                    await message.channel.send("api task was running", ephemeral=True)
+                    await message.channel.send("api task wasnt stoped")
 
 
 async def setup(bot):

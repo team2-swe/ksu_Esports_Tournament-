@@ -1,5 +1,7 @@
 from collections import defaultdict
 import copy
+import asyncio
+from colorama import Fore, Style
 
 """ Intial step sort player based on tier, rank and win ratio based on
     step1: sort based on player tier
@@ -225,6 +227,83 @@ def verify_swap_teams(t1, t2):
 
 
 
+"""
+async def main():
+    sorted_player = await intialSortingPlayer(players=orginal_players)
+    # print(sorted_player)
+    player_performance = await performance(sorted_player)
+    # print(player_performance)
+    t1, t2 = buildTeams(player_performance)
+    print(f"###team1 {t1}, \n #####team2 {t2}")
+
+
+import asyncio
+asyncio.run(main())
+"""
+
+# Define role_colors and rank_colors mappings
+role_colors = {
+    "tank": Fore.BLUE,
+    "healer": Fore.GREEN,
+    "dps": Fore.RED,
+    # Add other roles as needed
+}
+
+rank_colors = {
+    "bronze": Fore.YELLOW,
+    "silver": Fore.WHITE,
+    "gold": Fore.LIGHTYELLOW_EX,
+    "platinum": Fore.LIGHTWHITE_EX,
+    "diamond": Fore.CYAN,
+    "master": Fore.MAGENTA,
+    "grandmaster": Fore.LIGHTMAGENTA_EX,
+    # Add other ranks as needed
+}
+
+def format_player_info(player_entry):
+    """
+    Returns a formatted string showing the player's tier, rank, assigned role, and their role preferences.
+    Colors are applied according to the role and rank mappings.
+    """
+    assigned_player = player_entry["assigned_to"]
+    assigned_role = player_entry.get("team_role", "N/A")
+    # Capitalize each field
+    user_id = assigned_player["user_id"].capitalize()
+    tier = assigned_player["tier"].capitalize()
+    rank = assigned_player["rank"]
+
+    # Color the rank using Colorama mapping
+    colored_rank = f"{rank_colors.get(rank, '')}{rank}{Style.RESET_ALL}"
+
+    # Process and color each role in the player's preference list (capitalize them)
+    colored_roles = []
+    for role in assigned_player["role"]:
+        role_lower = role.lower()
+        color = role_colors.get(role_lower, "")
+        colored_roles.append(f"{color}{role.capitalize()}{Style.RESET_ALL}")
+    colored_roles_str = ", ".join(colored_roles)
+
+    # Process the assigned role (capitalize) and color it
+    assigned_role_str = assigned_role.capitalize() if assigned_role != "N/A" else "N/A"
+    assigned_role_lower = assigned_role.lower() if assigned_role != "N/A" else "N/A"
+    assigned_role_color = role_colors.get(assigned_role_lower, "")
+    colored_assigned_role = f"{assigned_role_color}{assigned_role_str}{Style.RESET_ALL}" if assigned_role != "N/A" else "N/A"
+
+    # Build the output string with the Assigned Role in the first column.
+    return (f"Assigned Role: {colored_assigned_role} | "
+            f"User: {user_id} | Tier: {tier} | Rank: {colored_rank} | Roles: {colored_roles_str}")
+
+
+def print_team(team, team_name, color_output=False):
+    print(f"========== {team_name} =============")
+    for player in team:
+        if color_output:
+            print(format_player_info(player))
+        else:
+            assigned = player["assigned_to"]
+            print(f"Assigned Role: {player.get('team_role', 'N/A')} | User: {assigned['user_id']} | "
+                  f"Tier: {assigned['tier']} | Rank: {assigned['rank']} | Roles: {', '.join(assigned['role'])}")
+
 orginal_players = [
     {'user_id': 'player1', 'tier': 'platinum', 'rank': 'II', 'wr': 56, 'role': ['mid','top','Jungle']},
     {'user_id': 'player2', 'tier': 'gold', 'rank': 'II', 'role': ['support','mid'], 'wr': 73},
@@ -238,15 +317,16 @@ orginal_players = [
     {'user_id': 'player10', 'tier': 'master', 'rank': 'II', 'wr': 93, 'role': ['top','Bottom','Jungle','support']}
 ]
 
-
-async def main():
+async def main(debug=False, color_output=False):
     sorted_player = await intialSortingPlayer(players=orginal_players)
-    # print(sorted_player)
-    player_performance = await performance(sorted_player)
-    # print(player_performance)
-    t1, t2 = buildTeams(player_performance)
-    print(f"###team1 {t1}, \n #####team2 {t2}")
+    if debug:
+        player_performance = await performance(sorted_player)
+        print(player_performance)
+        t1, t2 = buildTeams(player_performance)
+        print_team(t1, "Team 1", color_output)
+        print_team(t2, "Team 2", color_output)
+    else:
+        print("Debug flag not enabled. No team output.")
 
 
-import asyncio
-asyncio.run(main())
+asyncio.run(main(debug=True, color_output=True))

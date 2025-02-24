@@ -4,7 +4,6 @@ import asyncio
 from config import settings
 from discord.ext.commands import errors
 from model.dbc_model import Tournament_DB, Player, Game
-from common.database_connection import tournament_dbc
 from common.cached_details import Details_Cached
 
 
@@ -43,7 +42,7 @@ async def main():
 
         # Load the cogs (controllers)
         for cmd_file in settings.controller_dir.glob("*.py"):
-            if cmd_file.name != "__init__.py" and cmd_file.name != "signup_shared_logic.py":
+            if cmd_file.name != "__init__.py" and cmd_file.name != "signup_shared_logic.py" and cmd_file.name != "match_making.py" and cmd_file.name != "openAi_teamup.py":
                 try:
                     # await sys_client.load_extension(f"controller.{cmd_file.name[:-3]}")
                     await sys_client.load_extension(f"controller.{cmd_file.stem}")

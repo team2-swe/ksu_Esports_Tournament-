@@ -1,5 +1,5 @@
 from openai import OpenAI
-from config import settings
+import re
 
 """ Open ai players team up foramtion for tournament
     parameter:
@@ -8,7 +8,7 @@ from config import settings
 """
 async def openAi_teamUp(players):
     client = OpenAI(
-        api_key= settings.API_KEY 
+        api_key= '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' 
     )
 
     prompt = """
@@ -41,7 +41,7 @@ async def openAi_teamUp(players):
         model="gpt-4o-mini",
         store=True,
         messages=[
-            {"role": "system", "content": settings.prompt},
+            {"role": "system", "content": prompt},
             {"role": "user", "content": players}
         ],
         temperature=0.7,
@@ -84,10 +84,8 @@ async def get_generated_teams(response):
 players = "[{'user_id': 'player10', 'tier': 'master', 'rank': 'II', 'wr': 93, 'role': ['top', 'Bottom', 'Jungle', 'support']}, {'user_id': 'player9', 'tier': 'diamond', 'rank': 'II', 'wr': 75, 'role': ['mid', 'top', 'Jungle']}, {'user_id': 'player1', 'tier': 'platinum', 'rank': 'II', 'wr': 56, 'role': ['mid', 'top', 'Jungle']}, {'user_id': 'player3', 'tier': 'platinum', 'rank': 'IV', 'wr': 77, 'role': ['bottom', 'top', 'Jungle', 'mid', 'support']}, {'user_id': 'player8', 'tier': 'platinum', 'rank': 'V', 'wr': 47, 'role': ['mid']}, {'user_id': 'player5', 'tier': 'gold', 'rank': 'I', 'wr': 69, 'role': ['top', 'Jungle', 'mid']}, {'user_id': 'player2', 'tier': 'gold', 'rank': 'II', 'role': ['support', 'mid'], 'wr': 73}, {'user_id': 'player7', 'tier': 'gold', 'rank': 'IV', 'wr': 47, 'role': ['bottom', 'mid', 'top', 'Jungle', 'support']}, {'user_id': 'player6', 'tier': 'bronze', 'rank': 'I', 'wr': 86, 'role': ['top', 'Jungle']}, {'user_id': 'player4', 'tier': 'bronze', 'rank': 'III', 'wr': 78, 'role': ['Jungle']}]"
 # player_data = {"players": [{'name': 'player10', 'tier': 'master', 'role': ['top', 'Bottom', 'Jungle', 'support']}, {'name': 'player9', 'tier': 'diamond', 'role': ['mid', 'top', 'Jungle']}, {'name': 'player1', 'tier': 'platinum', 'role': ['mid', 'top', 'Jungle']}, {'name': 'player3', 'tier': 'platinum', 'role': ['bottom', 'top', 'Jungle', 'mid', 'support']}, {'name': 'player8', 'tier': 'platinum', 'role': ['mid']}, {'name': 'player5', 'tier': 'gold', 'role': ['top', 'Jungle', 'mid']}, {'name': 'player2', 'tier': 'gold', 'role': ['support', 'mid']}, {'name': 'player7', 'tier': 'gold', 'role': ['bottom', 'mid', 'top', 'Jungle', 'support']}, {'name': 'player6', 'tier': 'bronze', 'role': ['top', 'Jungle']}, {'name': 'player4', 'tier': 'bronze', 'role': ['Jungle']}]}
 async def main():
-    resp = await openAi_teamUp(players)
-    teams = await get_generated_teams(resp)
-
-    print(teams)
+    res = await openAi_teamUp(players)
+    print(res)
 
 import asyncio
 asyncio.run(main())

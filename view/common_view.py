@@ -119,13 +119,14 @@ class PlayerPrefRole(discord.ui.View):
         self.selected_pref = choices 
         self.children[1].disabled= True
         await interaction.message.edit(view=self)
-        await interaction.response.defer()
-
+        # await interaction.response.defer()
+        
         if not self.isRoleSelected:
             game_select = RoleSelect()
             self.add_item(game_select)
             await interaction.message.edit(view=self)
-            await interaction.response.defer()
+            # await interaction.response.defer()
+        
         db = dbc_model.Tournament_DB()
         dbc_model.Game.update_pref(db, interaction, self.selected_pref)
         db.close_db()
