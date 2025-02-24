@@ -18,10 +18,10 @@ class SignUpView(discord.ui.View):
 
 
     async def on_timeout(self) -> None:
-        await self.message.channel.send("this action is timed out, please use a '/register' command to register")
+        await self.message.channel.send("This action has timed out, please use a '/register' command to register")
         await self.disable_all_items()
 
-    @discord.ui.button(label="signUp", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Register", style=discord.ButtonStyle.success)
     async def signUp(self, interaction: discord.Interaction, button:discord.ui.Button):
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
       
@@ -31,5 +31,5 @@ class SignUpView(discord.ui.View):
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
     async def Cancel(self, interaction: discord.Interaction, button:discord.ui.Button):
-        await interaction.response.send_message("sure ignore for now")
+        await interaction.response.send_message("Registration Canceled")
         self.stop()

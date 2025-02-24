@@ -4,20 +4,27 @@ import asyncio
 from config import settings
 from discord.ext.commands import errors
 from model.dbc_model import Tournament_DB, Player, Game
+<<<<<<< HEAD
 from common.cached_details import Details_Cached
+=======
+# from common.database_connection import tournament_dbc
+# from common import database_connection
+# from common.cached_details import Details_Cached
+from common import cached_details
+>>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64
 
 
 '''
 we use bot.start(): 
-    to start bot asynchroneousely
-    we have a chnace to customize event loop to increase the perfomance
-    flexiablity because of we can set up custom logic or tasks before or after the botstarts running
+    to start bot asynchronously
+    we have a chance to customize event loop to increase the performance
+    flexibility because of we can set up custom logic or tasks before or after the bot starts running
 '''
 
 logger = settings.logging.getLogger("discord")
 
 async def main():
-    logger.info("start bot")
+    logger.info("Start Bot")
 
     intents = discord.Intents.default()
     intents.members = True  # Make sure to enable the intent to access members' information.
@@ -33,7 +40,7 @@ async def main():
 
     @sys_client.event
     async def on_ready():
-        logger.info(f"loged into server as {sys_client.user}")
+        logger.info(f"Logged into server as: {sys_client.user}")
 
         #create a channels and save cached created channels on all server bot is running
         for guild in sys_client.guilds:
@@ -63,7 +70,7 @@ async def main():
     @sys_client.event
     async def on_command_error(ctx, error):
         if isinstance(error, errors.ArgumentParsingError):
-            await ctx.send("there is parsing error")
+            await ctx.send("There is a parsing error")
         if isinstance(error, errors.CommandNotFound):
             await ctx.send("Invalid command from global error handler")
         elif isinstance(error, errors.MissingRequiredArgument):

@@ -38,7 +38,7 @@ class GiveawayView:
     @staticmethod
     async def cancel_callback(interaction):
         """Handle the cancellation of the giveaway."""
-        await interaction.response.send_message("The giveaway was canceled.")
+        await interaction.response.send_message("The giveaway has been canceled.")
 
     @staticmethod
     def pick_winners(guild, prize, winners_count):

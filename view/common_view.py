@@ -8,48 +8,49 @@ from model import dbc_model
 
 logger = settings.logging.getLogger("discord")
 
-class RegisterModal(Modal, title="Registeration"):
+class RegisterModal(Modal, title="Registration"):
     def __init__(self, timeout : int = 550):
         super().__init__()
         self.timeout = timeout
         self.viewStart_time = time.time()
         self.game_name = TextInput(
             style=discord.TextStyle.long,
-            label="game name:",
+            label="Game Name:",
             max_length=500,
             required=True,
-            placeholder="game you would like to play"
+            placeholder="Game you'd like to register for:"
         )
         self.add_item(self.game_name)
 
         self.Tag_id = TextInput(
             style=discord.TextStyle.short,
-            label="your tag id",
+            label="Tag ID",
             required=True,
-            placeholder="your tag id for the game"
+            placeholder="Game Tag ID"
         )
         self.add_item(self.Tag_id)
 
     async def on_submit(self, interaction: discord.Interaction):
-        """ this has a summury of checkin submission
+        """ This is a summary of check-in submission
             info:
-                summury will be send to feedback channel
+                Summary will be sent to the feedback channel
             Args:
                 discord interaction (interaction: discord.Interaction)
         """
-        logger.info(f"game detail {self.game_name.value} and user id is {self.Tag_id.value}")
+        logger.info(f"Game detail {self.game_name.value} and user id is {self.Tag_id.value}")
         try:
             db = dbc_model.Tournament_DB()
             dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
             db.close_db()
-            embed = discord.Embed(title="Checkin summury",
-                                description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
+            embed = discord.Embed(title="Check-In Summary",
+                                description=f"Game Name: {self.game_name.value} \
+                                Tag ID:{self.Tag_id.value}",
                                 color=discord.Color.yellow())
             embed.set_author(name=self.user)
-            await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed)
+            await interaction.response.send_message(f"Congratulations {self.user}, registration has been completed!", embed=embed)
 
         except Exception as ex:
-            print(f"it is faild on {ex}")
+            print(f"Failure on {ex}")
 
     async def on_error(self, interaction: discord.Interaction, error : Exception):
         traceback.print_tb(error.__traceback__)
@@ -58,13 +59,13 @@ class RegisterModal(Modal, title="Registeration"):
 class PreferenceSelect(discord.ui.Select):
     def __init__(self):
         options = [ 
-                   discord.SelectOption(label="Top Lane", value="top"),
-                   discord.SelectOption(label="Jungle", value="jungle"),
-                   discord.SelectOption(label="Mid Lane", value="mid"),
-                   discord.SelectOption(label="Bottom", value="bottom"),
-                   discord.SelectOption(label="Support", value="support"),
+                   discord.SelectOption(label="Top Lane", value="Top"),
+                   discord.SelectOption(label="Jungle", value="Jungle"),
+                   discord.SelectOption(label="Mid Lane", value="Mid"),
+                   discord.SelectOption(label="Bottom", value="Bottom"),
+                   discord.SelectOption(label="Support", value="Support"),
         ]
-        super().__init__(options=options, placeholder="select your prefernec in order, max 3", max_values=3)
+        super().__init__(options=options, placeholder="Select your preference(s) in order, max 3", max_values=3)
 
     async def callback(self, interaction:discord.Interaction):
         await self.view.selected_preferences(interaction, self.values)
@@ -72,11 +73,11 @@ class PreferenceSelect(discord.ui.Select):
 class RoleSelect(discord.ui.Select):
     def __init__(self):
         options = [ 
-                   discord.SelectOption(label="rol1", value="rol1"),
-                   discord.SelectOption(label="rol2", value="rol2"),
-                   discord.SelectOption(label="rol3", value="rol3"),
+                   discord.SelectOption(label="Role1", value="Role1"),
+                   discord.SelectOption(label="Role2", value="Role2"),
+                   discord.SelectOption(label="Role2", value="Role2"),
         ]
-        super().__init__(options=options, placeholder="select your role", max_values=1)
+        super().__init__(options=options, placeholder="Select your role", max_values=1)
 
     async def callback(self, interaction:discord.Interaction):
         await self.view.selected_role(interaction, self.values)       
@@ -92,10 +93,10 @@ class PlayerPrefRole(discord.ui.View):
         self.timeout = timeout
 
     @discord.ui.select(
-        placeholder="select and set game details",
+        placeholder="Assign player details",
         options=[
-            discord.SelectOption(label="your prefernce", value="pref"),
-            discord.SelectOption(label="your role", value="role")
+            discord.SelectOption(label="Preferences", value="pref"),
+            discord.SelectOption(label="Role", value="role")
         ]
     )
     async def select_game_details(self, interaction:discord.Interaction, select_item : discord.ui.Select):
@@ -148,47 +149,48 @@ class PlayerPrefRole(discord.ui.View):
         dbc_model.Game.update_role(db, interaction, self.selected_role)
         db.close_db()
 
-class Checkin_RegisterModal(Modal, title="Registeration"):
+class Checkin_RegisterModal(Modal, title="Registration"):
     def __init__(self, timeout : int = 550):
         super().__init__()
         self.timeout = timeout
         self.viewStart_time = time.time()
         self.game_name = TextInput(
             style=discord.TextStyle.long,
-            label="game name:",
+            label="Game Name:",
             max_length=500,
             required=True,
-            placeholder="game you would like to play"
+            placeholder="Game you'd like to register for:"
         )
         self.add_item(self.game_name)
 
         self.Tag_id = TextInput(
             style=discord.TextStyle.short,
-            label="your tag id",
+            label="Tag ID",
             required=True,
-            placeholder="your tag id for the game"
+            placeholder="Game Tag ID"
         )
         self.add_item(self.Tag_id)
 
     async def on_submit(self, interaction: discord.Interaction):
-        """ this has a summury of checkin submission
+        """ this has a summary of checkin submission
         info:
-            summury will be send to feedback channel
+            summary will be sent to feedback channel
         Args:
             discord interaction (interaction: discord.Interaction)
         """
-        logger.info(f"game detail {self.game_name.value} and user id is {self.Tag_id.value}")
+        logger.info(f"Game detail {self.game_name.value} and user ID is {self.Tag_id.value}")
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
         try:
             db = dbc_model.Tournament_DB()
             dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
             db.close_db()
-            embed = discord.Embed(title="Checkin summury",
-                                description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
+            embed = discord.Embed(title="Check-In Summary",
+                                description=f"Game name: {self.game_name.value} \
+                                Tag ID:{self.Tag_id.value}",
                                 color=discord.Color.yellow())
             embed.set_author(name=self.user)
 
-            await interaction.response.send_message(f"{self.user}, you have completed registration", ephemeral=True)
+            await interaction.response.send_message(f"Congratulations {self.user}, registration has been completed!", ephemeral=True)
 
             role_pref_view = PlayerPrefRole()
             # await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed, ephemeral=True)
@@ -198,4 +200,4 @@ class Checkin_RegisterModal(Modal, title="Registeration"):
             await message.delete()
 
         except Exception as ex:
-            print(f"it is faild on {ex}")
+            print(f"Failure {ex}")

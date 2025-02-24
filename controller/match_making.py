@@ -1,49 +1,52 @@
+import asyncio
 from collections import defaultdict
 import copy
 import asyncio
 from colorama import Fore, Style
 
-""" Intial step sort player based on tier, rank and win ratio based on
-    step1: sort based on player tier
-    step2: if players have same tier sort based on rank
-    step3: if players have same tier & rank then sort based on WR
+""" Initial step sort player based on Tier, Rank and win ratio based on
+    step1: sort based on player Tier
+    step2: if players have same Tier sort based on Rank
+    step3: if players have same Tier & Rank then sort based on WR
 """
 async def intialSortingPlayer(players):
-    #define custom order of tier & rank
-    tier_order = {"challenger": 1, "grandmaster": 2, "master": 3, "diamond": 4, "emerald": 5, "platinum": 6, "gold": 7, "silver": 8, "bronze": 9, "iron": 10, "default": 11}
-    rank_order = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5}
+    #define custom order of Tier & Rank
+    Tier_order = {"Challenger": 1, "Grandmaster": 2, "Master": 3, "Diamond": 4, "Emerald": 5, "Platinum": 6, "Gold": 7,
+                  "Silver": 8, "Bronze": 9, "Iron": 10, "Default": 11}
+    Rank_order = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5}
 
-    sortedPlayers = sorted(players, key=lambda pl: (tier_order[pl['tier']], rank_order[pl['rank']], -pl['wr']))
+    sortedPlayers = sorted(players, key=lambda pl: (Tier_order[pl['Tier']], Rank_order[pl['Rank']], -pl['WR']))
     
     return sortedPlayers
 
-""" for sorted player calculate their relative perfomance based on their role preference order
-    Assumption: player effective output according to theire role prefernce is 5% reduce
-                set SkillFactor_set for each tier based on different considerations, and each skill 
-                    has 5% skill advance/difference than the next tier
+""" for sorted player calculate their relative performance based on their Role preference order
+    Assumption: player effective output according to their Role preference is 5% reduce
+                set SkillFactor_set for each Tier based on different considerations, and each skill 
+                    has 5% skill advance/difference than the next Tier
 
-    A standard matimatical formula for player skill factor based on the above assumptions and conditions
-        relative_performance = player_skillFactor*0.75 + (1- pref_penality/100)*0.25
+    A standard mathematical formula for player skill factor based on the above assumptions and conditions
+        relative_performance = player_skillFactor*0.75 + (1- pref_penalty/100)*0.25
 
-    for player doesnt have role prefernece then the forced asighned role set as playerPerfomanceOfRole['forced']
+    for player doesnt have Role preference then the forced assigned Role set as player PerformanceOfRole['forced']
 """
 async def performance(players):
     players_output = []
-    SkillFactor_set = {"default": 0.0, "iron": 1.0, "bronze": 1.05, "silver": 1.10, "gold": 1.15, "platinum": 1.20, "emerald": 1.25, "diamond": 1.30, "master": 1.35, "grandmaster": 1.40, "challenger": 1.45}
+    SkillFactor_set = {"Default": 0.0, "Iron": 1.0, "Bronze": 1.05, "Silver": 1.10, "Gold": 1.15, "Platinum": 1.20,
+                       "Emerald": 1.25, "Diamond": 1.30, "Master": 1.35, "Grandmaster": 1.40, "Challenger": 1.45}
 
     for player in players:
         playerPerfomanceOfRole = {}
-        player_role = player["role"]
-        #get player skill factor based on their tier
-        player_skillFactor = SkillFactor_set.get(player["tier"])
+        player_Role = player["Role"]
+        #get player skill factor based on their Tier
+        player_skillFactor = SkillFactor_set.get(player["Tier"])
 
-        #to calculate the relative performance of each player based on their tier and role_preference
+        #to calculate the relative performance of each player based on their Tier and Role_preference
         totalPlayerRolesProcessd = 0
-        for i, role in enumerate(player_role):
+        for i, Role in enumerate(player_Role):
             pref_penality = i*5
 
             relative_performance = player_skillFactor*0.75 + (1- pref_penality/100)*0.25
-            playerPerfomanceOfRole[role] = relative_performance
+            playerPerfomanceOfRole[Role] = relative_performance
             totalPlayerRolesProcessd += 1
 
         if(totalPlayerRolesProcessd < 5):
@@ -55,12 +58,13 @@ async def performance(players):
     return players_output
 async def relativePerformance(tier, role_preference):
     playerPerfomanceOfRole = {}
-    SkillFactor_set = {"default": 0.0, "iron": 1.0, "bronze": 1.05, "silver": 1.10, "gold": 1.15, "platinum": 1.20, "emerald": 1.25, "diamond": 1.30, "master": 1.35, "grandmaster": 1.40, "challenger": 1.45}
+    SkillFactor_set = {"Default": 0.0, "Iron": 1.0, "Bronze": 1.05, "Silver": 1.10, "Gold": 1.15, "Platinum": 1.20,
+                       "Emerald": 1.25, "Diamond": 1.30, "Master": 1.35, "Grandmaster": 1.40, "Challenger": 1.45}
 
     #get player skill factor based on their tier
     player_skillFactor = SkillFactor_set.get(tier)
 
-    #to calculate the relative performance of each player based on their tier and role_preference
+    #to calculate the relative performance of each player based on their Tier and Role_preference
     totalRolePlayerSelected = 0
     for i, role in enumerate(role_preference):
         pref_penality = i*5
@@ -77,7 +81,7 @@ async def relativePerformance(tier, role_preference):
 def teamPerformance(team):
     totalRelativePerformance = 0
     for player in team:
-        totalRelativePerformance += sum(player["roleBasedPerformance"].values())
+        totalRelativePerformance += sum(player["RoleBasedPerformance"].values())
     return totalRelativePerformance
 
 def possible_assighn_role(player, teamRoleSet):
@@ -184,9 +188,9 @@ def buildTeams(players):
     return team1, team2
 
 
-"""this is to makes sure same player not teamup for tournamantes
+"""this is to makes sure same player not teamed up for tournaments
     method: verify_swap_teams
-        grouping each team based on their respective game history based on (gameid/customid)
+        grouping each team based on their respective game history based on (gameid/custoMid)
 
 """
 def verify_swap_teams(t1, t2):
@@ -197,7 +201,7 @@ def verify_swap_teams(t1, t2):
         for player_name, gameid in player.items():
             group_t1[gameid].append(player_name)
 
-    for player in T2:
+    for player in t2:
         for player_name, gameid in player.items():
             group_t2[gameid].append(player_name)
 
@@ -305,23 +309,74 @@ def print_team(team, team_name, color_output=False):
                   f"Tier: {assigned['tier']} | Rank: {assigned['rank']} | Roles: {', '.join(assigned['role'])}")
 
 orginal_players = [
-    {'user_id': 'player1', 'tier': 'platinum', 'rank': 'II', 'wr': 56, 'role': ['mid','top','Jungle']},
-    {'user_id': 'player2', 'tier': 'gold', 'rank': 'II', 'role': ['support','mid'], 'wr': 73},
-    {'user_id': 'player3', 'tier': 'platinum', 'rank': 'IV', 'wr': 77, 'role': ['bottom','top','Jungle','mid','support']},
-    {'user_id': 'player4', 'tier': 'bronze', 'rank': 'III', 'wr': 78, 'role': ['Jungle']},
-    {'user_id': 'player5', 'tier': 'gold', 'rank': 'I', 'wr': 69, 'role': ['top','Jungle','mid']},
-    {'user_id': 'player6', 'tier': 'bronze', 'rank': 'I', 'wr': 86, 'role': ['top','Jungle']},
-    {'user_id': 'player7', 'tier': 'gold', 'rank': 'IV', 'wr': 47, 'role': ['bottom','mid','top','Jungle','support']},
-    {'user_id': 'player8', 'tier': 'platinum', 'rank': 'V', 'wr': 47, 'role': ['mid']},
-    {'user_id': 'player9', 'tier': 'diamond', 'rank': 'II', 'wr': 75, 'role': ['mid','top','Jungle']},
-    {'user_id': 'player10', 'tier': 'master', 'rank': 'II', 'wr': 93, 'role': ['top','Bottom','Jungle','support']}
+    {'user_id': 'player1', 'Tier': 'Platinum', 'Rank': 'II', 'WR': 56, 'Role': ['Mid','Top','Jungle']},
+    {'user_id': 'player2', 'Tier': 'Gold', 'Rank': 'II', 'Role': ['Support','Mid'], 'WR': 73},
+    {'user_id': 'player3', 'Tier': 'Platinum', 'Rank': 'IV', 'WR': 77, 'Role': ['Bottom','Top','Jungle','Mid','Support']},
+    {'user_id': 'player4', 'Tier': 'Bronze', 'Rank': 'III', 'WR': 78, 'Role': ['Jungle']},
+    {'user_id': 'player5', 'Tier': 'Gold', 'Rank': 'I', 'WR': 69, 'Role': ['Top','Jungle','Mid']},
+    {'user_id': 'player6', 'Tier': 'Bronze', 'Rank': 'I', 'WR': 86, 'Role': ['Top','Jungle']},
+    {'user_id': 'player7', 'Tier': 'Gold', 'Rank': 'IV', 'WR': 47, 'Role': ['Bottom','Mid','Top','Jungle','Support']},
+    {'user_id': 'player8', 'Tier': 'Platinum', 'Rank': 'V', 'WR': 47, 'Role': ['Mid']},
+    {'user_id': 'player9', 'Tier': 'Diamond', 'Rank': 'II', 'WR': 75, 'Role': ['Mid','Top','Jungle']},
+    {'user_id': 'player10', 'Tier': 'Master', 'Rank': 'II', 'WR': 93, 'Role': ['Top','Bottom','Jungle','Support']}
 ]
 
+<<<<<<< HEAD
+=======
+
+def format_player_info(player_entry):
+    """
+    Returns a formatted string showing the player's tier, rank, assigned role, and their role preferences.
+    Colors are applied according to the role and rank mappings.
+    """
+    assigned_player = player_entry["assigned_to"]
+    assigned_role = player_entry.get("team_role", "N/A")
+    # Capitalize each field
+    user_id = assigned_player["user_id"].capitalize()
+    tier = assigned_player["tier"].capitalize()
+    rank = assigned_player["rank"]
+
+    # Color the rank using Colorama mapping
+    colored_rank = f"{rank_colors.get(rank, '')}{rank}{Style.RESET_ALL}"
+
+    # Process and color each role in the player's preference list (capitalize them)
+    colored_roles = []
+    for role in assigned_player["role"]:
+        role_lower = role.lower()
+        color = role_colors.get(role_lower, "")
+        colored_roles.append(f"{color}{role.capitalize()}{Style.RESET_ALL}")
+    colored_roles_str = ", ".join(colored_roles)
+
+    # Process the assigned role (capitalize) and color it
+    assigned_role_str = assigned_role.capitalize() if assigned_role != "N/A" else "N/A"
+    assigned_role_lower = assigned_role.lower() if assigned_role != "N/A" else "N/A"
+    assigned_role_color = role_colors.get(assigned_role_lower, "")
+    colored_assigned_role = f"{assigned_role_color}{assigned_role_str}{Style.RESET_ALL}" if assigned_role != "N/A" else "N/A"
+
+    # Build the output string with the Assigned Role in the first column.
+    return (f"Assigned Role: {colored_assigned_role} | "
+            f"User: {user_id} | Tier: {tier} | Rank: {colored_rank} | Roles: {colored_roles_str}")
+
+
+def print_team(team, team_name, color_output=False):
+    print(f"========== {team_name} =============")
+    for player in team:
+        if color_output:
+            print(format_player_info(player))
+        else:
+            assigned = player["assigned_to"]
+            print(f"Assigned Role: {player.get('team_role', 'N/A')} | User: {assigned['user_id']} | "
+                  f"Tier: {assigned['tier']} | Rank: {assigned['rank']} | Roles: {', '.join(assigned['role'])}")
+
+>>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64
 async def main(debug=False, color_output=False):
     sorted_player = await intialSortingPlayer(players=orginal_players)
     if debug:
         player_performance = await performance(sorted_player)
+<<<<<<< HEAD
         print(player_performance)
+=======
+>>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64
         t1, t2 = buildTeams(player_performance)
         print_team(t1, "Team 1", color_output)
         print_team(t2, "Team 2", color_output)
@@ -329,4 +384,8 @@ async def main(debug=False, color_output=False):
         print("Debug flag not enabled. No team output.")
 
 
+<<<<<<< HEAD
 asyncio.run(main(debug=True, color_output=True))
+=======
+asyncio.run(main(debug=False, color_output=False))
+>>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64

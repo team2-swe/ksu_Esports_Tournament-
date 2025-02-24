@@ -11,8 +11,8 @@ class Admin_commands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="checkin_game", description="checking to play next game")
-    @app_commands.describe(timeout="time in second befor the command message frez")
+    @app_commands.command(name="checkin_game", description="Checking to play next game")
+    @app_commands.describe(timeout="Time in seconds before the command message freezes")
     async def checkin(self, interaction: discord.Interaction, timeout: int = 900):
         # confirm_result = Player.fetch(interaction)
         if interaction.user.guild_permissions.administrator:
@@ -21,7 +21,7 @@ class Admin_commands(commands.Cog):
             channel_id = await Details_Cached.get_channel_id(channelName, guild_id)
             channel = interaction.guild.get_channel(channel_id)
             try:
-                logger.info(f"time out value is {timeout}")
+                logger.info(f"Time out value is: {timeout}")
                 game_checkin_view = CheckinView(timeout=timeout)  
 
                 # await interaction.response.send_message("check in instruction: the checkin time is ready")
@@ -38,11 +38,12 @@ class Admin_commands(commands.Cog):
                 await asyncio.sleep(timeout)
                 await message.delete()
 
-                await interaction.response.send_message(f"Checkin time has completed")
+                await interaction.response.send_message(f"Check-In time has been completed")
             except discord.Forbidden:
-                await channel.send(f"Bot doenst have a permission to send a message in {channel.name}", ephemeral=True)
+                await channel.send(f"Bot does not have permission to send a message in {channel.name}", ephemeral=True)
         else:
-            await interaction.response.send_message(f"Sorry you dont have required permission to use this command", ephemeral=True)
+            await interaction.response.send_message(f"Sorry you dont have access to use this command",
+                                                    ephemeral=True)
 
 
 async def setup(bot):
