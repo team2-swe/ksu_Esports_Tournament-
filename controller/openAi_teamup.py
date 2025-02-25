@@ -8,11 +8,7 @@ import re
 """
 async def openAi_teamUp(players):
     client = OpenAI(
-<<<<<<< HEAD
-        api_key= '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' 
-=======
-        api_key=settings.API_KEY
->>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64
+        api_key= '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'
     )
 
     prompt = """
@@ -92,19 +88,19 @@ async def get_generated_teams(response):
 
     return teams
 
-players = "[{'user_id': 'player10', 'tier': 'master', 'rank': 'II', 'wr': 93, 'role': ['top', 'Bottom', 'Jungle', 'support']}, {'user_id': 'player9', 'tier': 'diamond', " \
-          "'rank': 'II', 'wr': 75, 'role': ['mid', 'top', 'Jungle']}, {'user_id': 'player1', 'tier': 'platinum', 'rank': 'II', 'wr': 56, 'role': ['mid', 'top', 'Jungle']}, " \
-          "{'user_id': 'player3', 'tier': 'platinum', 'rank': 'IV', 'wr': 77, 'role': ['bottom', 'top', 'Jungle', 'mid', 'support']}, {'user_id': 'player8', 'tier': 'platinum', " \
-          "'rank': 'V', 'wr': 47, 'role': ['mid']}, {'user_id': 'player5', 'tier': 'gold', 'rank': 'I', 'wr': 69, 'role': ['top', 'Jungle', 'mid']}, {'user_id': 'player2', " \
-          "'tier': 'gold', 'rank': 'II', 'role': ['support', 'mid'], 'wr': 73}, {'user_id': 'player7', 'tier': 'gold', 'rank': 'IV', 'wr': 47, 'role': ['bottom', 'mid', 'top', " \
-          "'Jungle', 'support']}, {'user_id': 'player6', 'tier': 'bronze', 'rank': 'I', 'wr': 86, 'role': ['top', 'Jungle']}, {'user_id': 'player4', 'tier': 'bronze', " \
-          "'rank': 'III', 'wr': 78, 'role': ['Jungle']}]"
-# player_data = {"players": [{'name': 'player10', 'tier': 'master', 'role': ['top', 'Bottom', 'Jungle', 'support']}, {'name': 'player9', 'tier': 'diamond',
-# 'role': ['mid', 'top', 'Jungle']}, {'name': 'player1', 'tier': 'platinum', 'role': ['mid', 'top', 'Jungle']}, {'name': 'player3', 'tier': 'platinum',
-# 'role': ['bottom', 'top', 'Jungle', 'mid', 'support']}, {'name': 'player8', 'tier': 'platinum', 'role': ['mid']}, {'name': 'player5', 'tier': 'gold',
-# 'role': ['top', 'Jungle', 'mid']}, {'name': 'player2', 'tier': 'gold', 'role': ['support', 'mid']}, {'name': 'player7', 'tier': 'gold',
-# 'role': ['bottom', 'mid', 'top', 'Jungle', 'support']}, {'name': 'player6', 'tier': 'bronze', 'role': ['top', 'Jungle']}, {'name': 'player4',
-# 'tier': 'bronze', 'role': ['Jungle']}]}
+players = "[{'user_id': 'player10', 'Tier': 'Master', 'Rank': 'II', 'WR': 93, 'Role': ['Top', 'Bottom', 'Jungle', 'Support']}, {'user_id': 'player9', 'Tier': 'Diamond', " \
+          "'Rank': 'II', 'WR': 75, 'Role': ['Mid', 'Top', 'Jungle']}, {'user_id': 'player1', 'Tier': 'Platinum', 'Rank': 'II', 'WR': 56, 'Role': ['Mid', 'Top', 'Jungle']}, " \
+          "{'user_id': 'player3', 'Tier': 'Platinum', 'Rank': 'IV', 'WR': 77, 'Role': ['Bottom', 'Top', 'Jungle', 'Mid', 'Support']}, {'user_id': 'player8', 'Tier': 'Platinum', " \
+          "'Rank': 'V', 'WR': 47, 'Role': ['Mid']}, {'user_id': 'player5', 'Tier': 'Gold', 'Rank': 'I', 'WR': 69, 'Role': ['Top', 'Jungle', 'Mid']}, {'user_id': 'player2', " \
+          "'Tier': 'Gold', 'Rank': 'II', 'Role': ['Support', 'Mid'], 'WR': 73}, {'user_id': 'player7', 'Tier': 'Gold', 'Rank': 'IV', 'WR': 47, 'Role': ['Bottom', 'Mid', 'Top', " \
+          "'Jungle', 'Support']}, {'user_id': 'player6', 'Tier': 'Bronze', 'Rank': 'I', 'WR': 86, 'Role': ['Top', 'Jungle']}, {'user_id': 'player4', 'Tier': 'Bronze', " \
+          "'Rank': 'III', 'WR': 78, 'Role': ['Jungle']}]"
+# player_data = {"players": [{'name': 'player10', 'Tier': 'Master', 'Role': ['Top', 'Bottom', 'Jungle', 'Support']}, {'name': 'player9', 'Tier': 'Diamond',
+# 'Role': ['Mid', 'Top', 'Jungle']}, {'name': 'player1', 'Tier': 'Platinum', 'Role': ['Mid', 'Top', 'Jungle']}, {'name': 'player3', 'Tier': 'Platinum',
+# 'Role': ['Bottom', 'Top', 'Jungle', 'Mid', 'Support']}, {'name': 'player8', 'Tier': 'Platinum', 'Role': ['Mid']}, {'name': 'player5', 'Tier': 'Gold',
+# 'Role': ['Top', 'Jungle', 'Mid']}, {'name': 'player2', 'Tier': 'Gold', 'Role': ['Support', 'Mid']}, {'name': 'player7', 'Tier': 'Gold',
+# 'Role': ['Bottom', 'Mid', 'Top', 'Jungle', 'Support']}, {'name': 'player6', 'Tier': 'Bronze', 'Role': ['Top', 'Jungle']}, {'name': 'player4',
+# 'Tier': 'Bronze', 'Role': ['Jungle']}]}
 async def main():
     res = await openAi_teamUp(players)
     print(res)

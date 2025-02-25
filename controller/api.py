@@ -90,11 +90,7 @@ class Api_Collection(commands.Cog):
             if isinstance(message.author, discord.Member) and message.author.guild_permissions.administrator:
                 if self.fetch_all_players_details.is_running():
                     self.fetch_all_players_details.cancel()
-<<<<<<< HEAD
                     await message.channel.send("api task is stoped")
-=======
-                    await message.channel.send("api task is stopped", ephemeral=True)
->>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64
 
                 else:
                     await message.channel.send("api task wasnt running")
