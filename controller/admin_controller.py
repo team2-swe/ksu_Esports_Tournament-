@@ -7,6 +7,7 @@ from view.tier_view import TierView
 from config import settings
 from common.cached_details import Details_Cached
 from model.dbc_model import Tournament_DB, Player_game_info, Checkin
+from model.player import PlayerModel
 
 logger = settings.logging.getLogger("discord")
 
@@ -87,6 +88,26 @@ class Admin_commands(commands.Cog):
             else:
                 return None
         return None
+    
+    # This will add toxicity points to the player the admin chooses
+    @app_commands.command(name="toxicity", description="Add 1 point to the players toxicity level")
+    @app_commands.describe(player="The player to add toxicity to")
+    async def toxicity(self, interaction: discord.Interaction, player: str):
+    # Check if the player is an admin and end if not
+        if interaction.user.guild_permissions.administrator:
+            try:
+                # Call the method to update the database and check if it returns a success
+                found_user = PlayerModel.update_toxicity(interaction, player.lower())
+                if found_user:
+                    await interaction.response.send_message(f"{player}'s toxicity point has been updated.", ephemeral=True)
+                else:
+                    await interaction.response.send_message(f"{player} could not be found.", ephemeral=True)
+
+            except Exception as e:
+                print(f'An error occured: {e}')
+        else:
+            await interaction.response.send_message("❌ This command is only for administrators.", ephemeral=True)
+            return
     
 
     async def cog_check(self, ctx):
