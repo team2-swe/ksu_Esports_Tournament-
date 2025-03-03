@@ -2,7 +2,6 @@ import discord
 from discord.ui import *
 from config import settings
 import asyncio
-from model.button_state import ButtonState
 from model.dbc_model import Tournament_DB, Player
 from config import settings
 from common import common_scripts
@@ -24,14 +23,10 @@ class CheckinView(discord.ui.View):
         #await self.message.delete()  --we can delete the messgae at all
         await self.message.edit(view=self)
         
-
-
     async def on_timeout(self) -> None:
         await self.user_dm.send("Check-In has timed out")
         await self.message.channel.send(f"Check-In has timed out")
         await self.disable_all_items()
-
-
 
     @discord.ui.button(label="Check-In", style=discord.ButtonStyle.success)
     async def Checkin(self, interaction: discord.Interaction, button:discord.ui.Button):
@@ -46,16 +41,15 @@ class CheckinView(discord.ui.View):
 
         if isAcountExist:
             # self.disable_all_items()
-            player_preference_role_view = PlayerPrefRole()
+            player_preference_role_view = PlayerPrefRole(timeout=remaining_time)
 
             await dm_to_user.send(content="Please select your role and preferences", view=player_preference_role_view)
             await interaction.response.send_message(f"Hang tight! Processing your check-in..., Check your DMs for the next step", ephemeral=True)
 
-            await asyncio.sleep(self.timeout)
-            await message.delete()
+            # await asyncio.sleep(self.timeout)
+            # await message.delete()
         else:
-            button_state = ButtonState()
-            signUp_view = SignUpView(button_state, timeout=remaining_time)
+            signUp_view = SignUpView(timeout=remaining_time)
 
             if signUp_view.children:
 
@@ -98,33 +92,26 @@ class CheckinView(discord.ui.View):
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
     async def Cancel(self, interaction: discord.Interaction):
         await interaction.response.send_message("Registration Canceled")
-        self.buttonState.set_button_state(True)
         self.stop()
 
 
 class SignUpView(discord.ui.View):
-    def __init__(self, buttonState, timeout = 200):
+    def __init__(self, timeout):
         super().__init__(timeout=timeout)
-        self.button_state = buttonState
         self.timeout = timeout
         self.viewStart_time = time.time()
 
     async def disable_all_items(self):
         for item in self.children:
             item.disabled = True
-        #await self.message.delete()  --we can delete the messgae at all
         await self.message.edit(view=self)
-        
-
 
     async def on_timeout(self) -> None:
-        await self.message.channel.send("This action has timed out, please use a /register command to register")
         await self.disable_all_items()
 
     @discord.ui.button(label="Register", style=discord.ButtonStyle.success)
     async def signUp(self, interaction: discord.Interaction, button:discord.ui.Button):
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
-        self.button_state.set_button_state(True)
         self.stop()
         await SharedLogic.execute_checkin_signup_model(interaction)
         await self.disable_all_items()
@@ -135,5 +122,4 @@ class SignUpView(discord.ui.View):
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
     async def Cancel(self, interaction: discord.Interaction):
         await interaction.response.send_message("Registration Canceled")
-        self.button_state.set_button_state(True)
         self.stop()

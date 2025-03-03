@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from config import settings
 from model import dbc_model
-from model.button_state import ButtonState, first_login_users
 from view.signUp_view import SignUpView
 from common import common_scripts
 

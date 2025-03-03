@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 from config import settings
-from model.dbc_model import Tournament_DB ,Player, Game
+from model.dbc_model import Tournament_DB ,Player, Player_game_info
 import requests
 
 logger = settings.logging.getLogger("discord")
@@ -11,40 +11,9 @@ logger = settings.logging.getLogger("discord")
     or
     We use API key in headeres for authorization
 '''
-
-class Api_Collection(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        self.fetch_all_players_details.start()
-
-    def cog_unload(self):
-        self.fetch_all_players_details.cancel()
-
-    @tasks.loop(seconds=600)
-    async def fetch_all_players_details(self):
-        db = Tournament_DB()
-        #we pass here the game a hard coded
-        all_players = Player.get_all_player(db)
-        if all_players is not None:
-            for player in all_players:
-                logger.info(f"start to fetch a player discord is: {player[0]} details from riot api")
-                player_info = await self.get_player_details(player[1], player[2])
-
-                if player_info and player_info[0]['rank']:
-                    # player_rank = player_info.get('rank', 'unranked')
-                    player_tier = player_info[0]['tier']
-                    player_rank = player_info[0]['rank']
-                    player_wins = player_info[0]['wins']
-                    player_losses = player_info[0]['losses']
-                    
-                    Game.update_player_API_info(db, player[0], player[1], player_tier, player_rank, player_wins, player_losses)
-            db.close_db()
-    @fetch_all_players_details.before_loop
-    async def before_fetch_all_players_details(self):
-        await self.bot.wait_until_ready()
-
-
-    async def get_player_details(interaction: discord.Interaction, game_name, tag_id):
+class ApiCommon:
+    @staticmethod
+    async def get_player_details(game_name, tag_id):
         # headers = {
         #     'Authorization': f'Bearer {settings.API_KEY}',
         #     'Content-Type': 'application/json'
@@ -80,7 +49,46 @@ class Api_Collection(commands.Cog):
         except Exception as ex:
             logger.info(f"the request to get user puui is failed")
 
-    
+    async def push_player_info(player_id, game_name, tag_id):
+        logger.info(f"start to fetch a player discord is: {player_id} details from riot api")
+        resultJson = await ApiCommon.get_player_details(game_name, tag_id)
+        db = Tournament_DB()
+        if resultJson:
+            player_tier = resultJson[0]['tier'] if 'tier' in resultJson[0] else 'unranked'
+            player_rank = resultJson[0]['rank'] if 'rank' in resultJson[0] else 'unranked'
+            player_wins = resultJson[0]['wins'] if 'wins' in resultJson[0] else 0
+            player_losses = resultJson[0]['losses'] if 'losses' in resultJson[0] else 0
+            Player_game_info.update_player_API_info(db, player_id, player_tier, player_rank, player_wins, player_losses)
+        else:
+            logger.info(f"the player {player_id} is not found in the riot api")
+            Player.remove_player(db, player_id)
+        
+        db.close_db()
+
+
+class Api_Collection(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.fetch_players_details.start()
+
+    def cog_unload(self):
+        self.fetch_players_details.cancel()
+
+    @tasks.loop(seconds=7200)
+    async def fetch_players_details(self):
+        db = Tournament_DB()
+        all_players = Player.get_players(db)
+        db.close_db()
+        if all_players is not None:
+            for player in all_players:
+                await ApiCommon.push_player_info(player[0], player[1], player[2])
+
+
+    @fetch_players_details.before_loop
+    async def before_fetch_players_details(self):
+        await self.bot.wait_until_ready()
+
+
     @commands.Cog.listener()
     async def on_message(self, message):
         """this event listener is for admin to stop and run the api schedule
@@ -88,13 +96,9 @@ class Api_Collection(commands.Cog):
         if message.content.strip().lower() == settings.STOP_API_TASK.strip().lower():
             #check the permission if the user is admin
             if isinstance(message.author, discord.Member) and message.author.guild_permissions.administrator:
-                if self.fetch_all_players_details.is_running():
-                    self.fetch_all_players_details.cancel()
-<<<<<<< HEAD
-                    await message.channel.send("api task is stoped")
-=======
-                    await message.channel.send("api task is stopped", ephemeral=True)
->>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64
+                if self.fetch_players_details.is_running():
+                    self.fetch_players_details.cancel()
+                    await message.channel.send("api task is stopped")
 
                 else:
                     await message.channel.send("api task wasnt running")
@@ -102,8 +106,8 @@ class Api_Collection(commands.Cog):
         if message.content.strip().lower() == settings.START_API_TASK.strip().lower():
             #check the permission if the user is admin
             if isinstance(message.author, discord.Member) and message.author.guild_permissions.administrator:
-                if not self.fetch_all_players_details.is_running():
-                    self.fetch_all_players_details.start()
+                if not self.fetch_players_details.is_running():
+                    self.fetch_players_details.start()
                     await message.channel.send("api task start")
 
                 else:

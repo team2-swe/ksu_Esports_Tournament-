@@ -8,14 +8,14 @@ class SharedLogic:
         pass
     
     @staticmethod
-    async def execute_signup_model(interaction:discord.Interaction, timeout : int = 300):
+    async def execute_signup_model(interaction:discord.Interaction):
         register_modal = RegisterModal()
         
         register_modal.user = interaction.user
         message = await interaction.response.send_modal(register_modal)
         register_modal.message = message
-        await asyncio.sleep(timeout)
-        await message.delete()
+        # await asyncio.sleep(timeout)
+        # await message.delete()
 
     @staticmethod
     async def execute_checkin_signup_model(interaction:discord.Interaction, timeout : int = 300):
@@ -24,8 +24,8 @@ class SharedLogic:
         register_modal.user = interaction.user
         message = await interaction.response.send_modal(register_modal)
 
-        await asyncio.sleep(timeout)
-        await message.delete()
+        # await asyncio.sleep(timeout)
+        # await message.delete()
 
 
 

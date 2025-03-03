@@ -3,15 +3,8 @@ from discord.ext import commands
 import asyncio
 from config import settings
 from discord.ext.commands import errors
-from model.dbc_model import Tournament_DB, Player, Game
-<<<<<<< HEAD
+from model.dbc_model import Tournament_DB, Player, Player_game_info
 from common.cached_details import Details_Cached
-=======
-# from common.database_connection import tournament_dbc
-# from common import database_connection
-# from common.cached_details import Details_Cached
-from common import cached_details
->>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64
 
 
 '''
@@ -27,7 +20,7 @@ async def main():
     logger.info("Start Bot")
 
     intents = discord.Intents.default()
-    intents.members = True  # Make sure to enable the intent to access members' information.
+    intents.members = True 
     intents.message_content = True
 
     sys_client = commands.Bot(command_prefix="$", intents=intents)
@@ -35,7 +28,7 @@ async def main():
     # Initialize the database and create tables
     db = Tournament_DB()
     Player.createTable(db)
-    Game.createTable(db)
+    Player_game_info.createTable(db)
 
 
     @sys_client.event
@@ -49,7 +42,7 @@ async def main():
 
         # Load the cogs (controllers)
         for cmd_file in settings.controller_dir.glob("*.py"):
-            if cmd_file.name != "__init__.py" and cmd_file.name != "signup_shared_logic.py" and cmd_file.name != "match_making.py" and cmd_file.name != "openAi_teamup.py":
+            if cmd_file.name != "__init__.py" and cmd_file.name != "signup_shared_logic.py" and cmd_file.name != "match_making.py" and cmd_file.name != "openAi_teamup.py" and cmd_file.name != "tournamentBracket.py":
                 try:
                     # await sys_client.load_extension(f"controller.{cmd_file.name[:-3]}")
                     await sys_client.load_extension(f"controller.{cmd_file.stem}")

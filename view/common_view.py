@@ -5,14 +5,13 @@ import traceback
 import asyncio
 import time
 from model import dbc_model
+from controller import api
 
 logger = settings.logging.getLogger("discord")
 
 class RegisterModal(Modal, title="Registration"):
-    def __init__(self, timeout : int = 550):
+    def __init__(self):
         super().__init__()
-        self.timeout = timeout
-        self.viewStart_time = time.time()
         self.game_name = TextInput(
             style=discord.TextStyle.long,
             label="Game Name:",
@@ -38,10 +37,14 @@ class RegisterModal(Modal, title="Registration"):
                 discord interaction (interaction: discord.Interaction)
         """
         logger.info(f"Game detail {self.game_name.value} and user id is {self.Tag_id.value}")
+        game_name = self.game_name.value.strip()
+        tag_id = self.Tag_id.value.strip()
         try:
             db = dbc_model.Tournament_DB()
-            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
+            dbc_model.Player.register(db, interaction=interaction, gamename=game_name, tagid=tag_id)
             db.close_db()
+            await api.ApiCommon.push_player_info(player_id=interaction.user.id, game_name=game_name, tag_id=tag_id)
+
             embed = discord.Embed(title="Check-In Summary",
                                 description=f"Game Name: {self.game_name.value} \
                                 Tag ID:{self.Tag_id.value}",
@@ -69,23 +72,10 @@ class PreferenceSelect(discord.ui.Select):
 
     async def callback(self, interaction:discord.Interaction):
         await self.view.selected_preferences(interaction, self.values)
-
-class RoleSelect(discord.ui.Select):
-    def __init__(self):
-        options = [ 
-                   discord.SelectOption(label="Role1", value="Role1"),
-                   discord.SelectOption(label="Role2", value="Role2"),
-                   discord.SelectOption(label="Role2", value="Role2"),
-        ]
-        super().__init__(options=options, placeholder="Select your role", max_values=1)
-
-    async def callback(self, interaction:discord.Interaction):
-        await self.view.selected_role(interaction, self.values)       
+    
 
 class PlayerPrefRole(discord.ui.View):
     selected_pref = None 
-    selected_role = None
-    isRoleSelected : bool = False
     isPrefSelected : bool = False
 
     def __init__(self, *, timeout = 540):
@@ -95,59 +85,28 @@ class PlayerPrefRole(discord.ui.View):
     @discord.ui.select(
         placeholder="Assign player details",
         options=[
-            discord.SelectOption(label="Preferences", value="pref"),
-            discord.SelectOption(label="Role", value="role")
+            discord.SelectOption(label="Preferences", value="pref")
         ]
     )
     async def select_game_details(self, interaction:discord.Interaction, select_item : discord.ui.Select):
-        if select_item.values[0] == "pref":
-            self.children[0].disabled= True   
-            game_select = PreferenceSelect()
-            self.add_item(game_select)
-            await interaction.message.edit(view=self)
-            await interaction.response.defer()
-            self.isPrefSelected = True
-        else:
-            self.children[0].disabled= True
-            game_select = RoleSelect()
-            self.add_item(game_select)
-            await interaction.message.edit(view=self)
-            await interaction.response.defer()
-            self.isRoleSelected = True
+        self.children[0].disabled= True   
+        game_select = PreferenceSelect()
+        self.add_item(game_select)
+        await interaction.message.edit(view=self)
+        await interaction.response.defer()
 
     async def selected_preferences(self, interaction : discord.Interaction, choices):
         
         self.selected_pref = choices 
-        self.children[1].disabled= True
+        self.children[1].disabled = True
         await interaction.message.edit(view=self)
         # await interaction.response.defer()
-        
-        if not self.isRoleSelected:
-            game_select = RoleSelect()
-            self.add_item(game_select)
-            await interaction.message.edit(view=self)
-            # await interaction.response.defer()
-        
         db = dbc_model.Tournament_DB()
-        dbc_model.Game.update_pref(db, interaction, self.selected_pref)
+        dbc_model.Player_game_info.update_pref(db, interaction, self.selected_pref)
+        dbc_model.Checkin.check_in(db, interaction)
         db.close_db()
         self.stop()
-
-    async def selected_role(self, interaction : discord.Interaction, choices):
-        
-        self.selected_role = choices 
-        self.children[1].disabled= True
-        await interaction.message.edit(view=self)
-        await interaction.response.defer()
-
-        if not self.isPrefSelected:
-            game_select = PreferenceSelect()
-            self.add_item(game_select)
-            await interaction.message.edit(view=self)
-            await interaction.response.defer()
-        db = dbc_model.Tournament_DB()
-        dbc_model.Game.update_role(db, interaction, self.selected_role)
-        db.close_db()
+        # await interaction.response.send_message(f"Player preferences has been updated")
 
 class Checkin_RegisterModal(Modal, title="Registration"):
     def __init__(self, timeout : int = 550):
@@ -180,10 +139,14 @@ class Checkin_RegisterModal(Modal, title="Registration"):
         """
         logger.info(f"Game detail {self.game_name.value} and user ID is {self.Tag_id.value}")
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
+        game_name = self.game_name.value.strip()
+        tag_id = self.Tag_id.value.strip()
         try:
             db = dbc_model.Tournament_DB()
-            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
+            dbc_model.Player.register(db, interaction=interaction, gamename=game_name, tagid=tag_id)
             db.close_db()
+            await api.ApiCommon.push_player_info(player_id=interaction.user.id, game_name=game_name, tag_id=tag_id)
+            
             embed = discord.Embed(title="Check-In Summary",
                                 description=f"Game name: {self.game_name.value} \
                                 Tag ID:{self.Tag_id.value}",

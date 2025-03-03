@@ -21,6 +21,15 @@ API_URL = os.getenv("API_URL")
 STOP_API_TASK = os.getenv("STOP_API_TASK")
 START_API_TASK = os.getenv("START_API_TASK")
 
+#for tier list settings
+TIER_LIST = os.getenv("TIER_LIST")
+##Conditon set for tier promotion and demotion
+#For promotion
+MIN_GAME_PLAYED = os.getenv("MIN_GAME_PLAYED")
+MIN_GAME_WINRATE = os.getenv("MIN_GAME_WINRATE")
+#FOR DEMOTION
+MAX_GAME_LOST = os.getenv("MAX_GAME_LOST")
+
 #for openAi matchmaking
 OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 PROMPT = os.getenv("prompt")

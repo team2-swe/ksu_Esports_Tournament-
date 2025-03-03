@@ -1,10 +1,9 @@
 import discord
-from model.button_state import ButtonState
 from controller.signup_shared_logic import SharedLogic
 import time
 
 class SignUpView(discord.ui.View):
-    def __init__(self, timeout = 600):
+    def __init__(self, timeout = 180):
         super().__init__(timeout=timeout)
         self.timeout = timeout
         self.viewStart_time = time.time()
@@ -23,13 +22,15 @@ class SignUpView(discord.ui.View):
 
     @discord.ui.button(label="Register", style=discord.ButtonStyle.success)
     async def signUp(self, interaction: discord.Interaction, button:discord.ui.Button):
-        remaining_time = self.timeout - (time.time() - self.viewStart_time)
+        # remaining_time = self.timeout - (time.time() - self.viewStart_time)
       
         # self.stop()
-        await SharedLogic.execute_signup_model(interaction, timeout=remaining_time)
+        # await SharedLogic.execute_signup_model(interaction, timeout=remaining_time)
         # await self.disable_all_items()
+        await SharedLogic.execute_signup_model(interaction)
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
     async def Cancel(self, interaction: discord.Interaction, button:discord.ui.Button):
         await interaction.response.send_message("Registration Canceled")
+        await self.disable_all_items()
         self.stop()

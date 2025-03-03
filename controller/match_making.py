@@ -272,7 +272,7 @@ def format_player_info(player_entry):
     assigned_player = player_entry["assigned_to"]
     assigned_role = player_entry.get("team_role", "N/A")
     # Capitalize each field
-    user_id = assigned_player["user_id"].capitalize()
+    player_id = assigned_player["player_id"].capitalize()
     tier = assigned_player["tier"].capitalize()
     rank = assigned_player["rank"]
 
@@ -295,7 +295,7 @@ def format_player_info(player_entry):
 
     # Build the output string with the Assigned Role in the first column.
     return (f"Assigned Role: {colored_assigned_role} | "
-            f"User: {user_id} | Tier: {tier} | Rank: {colored_rank} | Roles: {colored_roles_str}")
+            f"User: {player_id} | Tier: {tier} | Rank: {colored_rank} | Roles: {colored_roles_str}")
 
 
 def print_team(team, team_name, color_output=False):
@@ -305,24 +305,22 @@ def print_team(team, team_name, color_output=False):
             print(format_player_info(player))
         else:
             assigned = player["assigned_to"]
-            print(f"Assigned Role: {player.get('team_role', 'N/A')} | User: {assigned['user_id']} | "
+            print(f"Assigned Role: {player.get('team_role', 'N/A')} | User: {assigned['player_id']} | "
                   f"Tier: {assigned['tier']} | Rank: {assigned['rank']} | Roles: {', '.join(assigned['role'])}")
 
 orginal_players = [
-    {'user_id': 'player1', 'Tier': 'Platinum', 'Rank': 'II', 'WR': 56, 'Role': ['Mid','Top','Jungle']},
-    {'user_id': 'player2', 'Tier': 'Gold', 'Rank': 'II', 'Role': ['Support','Mid'], 'WR': 73},
-    {'user_id': 'player3', 'Tier': 'Platinum', 'Rank': 'IV', 'WR': 77, 'Role': ['Bottom','Top','Jungle','Mid','Support']},
-    {'user_id': 'player4', 'Tier': 'Bronze', 'Rank': 'III', 'WR': 78, 'Role': ['Jungle']},
-    {'user_id': 'player5', 'Tier': 'Gold', 'Rank': 'I', 'WR': 69, 'Role': ['Top','Jungle','Mid']},
-    {'user_id': 'player6', 'Tier': 'Bronze', 'Rank': 'I', 'WR': 86, 'Role': ['Top','Jungle']},
-    {'user_id': 'player7', 'Tier': 'Gold', 'Rank': 'IV', 'WR': 47, 'Role': ['Bottom','Mid','Top','Jungle','Support']},
-    {'user_id': 'player8', 'Tier': 'Platinum', 'Rank': 'V', 'WR': 47, 'Role': ['Mid']},
-    {'user_id': 'player9', 'Tier': 'Diamond', 'Rank': 'II', 'WR': 75, 'Role': ['Mid','Top','Jungle']},
-    {'user_id': 'player10', 'Tier': 'Master', 'Rank': 'II', 'WR': 93, 'Role': ['Top','Bottom','Jungle','Support']}
+    {'player_id': 'player1', 'Tier': 'Platinum', 'Rank': 'II', 'WR': 56, 'Role': ['Mid','Top','Jungle']},
+    {'player_id': 'player2', 'Tier': 'Gold', 'Rank': 'II', 'Role': ['Support','Mid'], 'WR': 73},
+    {'player_id': 'player3', 'Tier': 'Platinum', 'Rank': 'IV', 'WR': 77, 'Role': ['Bottom','Top','Jungle','Mid','Support']},
+    {'player_id': 'player4', 'Tier': 'Bronze', 'Rank': 'III', 'WR': 78, 'Role': ['Jungle']},
+    {'player_id': 'player5', 'Tier': 'Gold', 'Rank': 'I', 'WR': 69, 'Role': ['Top','Jungle','Mid']},
+    {'player_id': 'player6', 'Tier': 'Bronze', 'Rank': 'I', 'WR': 86, 'Role': ['Top','Jungle']},
+    {'player_id': 'player7', 'Tier': 'Gold', 'Rank': 'IV', 'WR': 47, 'Role': ['Bottom','Mid','Top','Jungle','Support']},
+    {'player_id': 'player8', 'Tier': 'Platinum', 'Rank': 'V', 'WR': 47, 'Role': ['Mid']},
+    {'player_id': 'player9', 'Tier': 'Diamond', 'Rank': 'II', 'WR': 75, 'Role': ['Mid','Top','Jungle']},
+    {'player_id': 'player10', 'Tier': 'Master', 'Rank': 'II', 'WR': 93, 'Role': ['Top','Bottom','Jungle','Support']}
 ]
 
-<<<<<<< HEAD
-=======
 
 def format_player_info(player_entry):
     """
@@ -332,7 +330,7 @@ def format_player_info(player_entry):
     assigned_player = player_entry["assigned_to"]
     assigned_role = player_entry.get("team_role", "N/A")
     # Capitalize each field
-    user_id = assigned_player["user_id"].capitalize()
+    player_id = assigned_player["player_id"].capitalize()
     tier = assigned_player["tier"].capitalize()
     rank = assigned_player["rank"]
 
@@ -355,7 +353,7 @@ def format_player_info(player_entry):
 
     # Build the output string with the Assigned Role in the first column.
     return (f"Assigned Role: {colored_assigned_role} | "
-            f"User: {user_id} | Tier: {tier} | Rank: {colored_rank} | Roles: {colored_roles_str}")
+            f"User: {player_id} | Tier: {tier} | Rank: {colored_rank} | Roles: {colored_roles_str}")
 
 
 def print_team(team, team_name, color_output=False):
@@ -365,18 +363,13 @@ def print_team(team, team_name, color_output=False):
             print(format_player_info(player))
         else:
             assigned = player["assigned_to"]
-            print(f"Assigned Role: {player.get('team_role', 'N/A')} | User: {assigned['user_id']} | "
+            print(f"Assigned Role: {player.get('team_role', 'N/A')} | User: {assigned['player_id']} | "
                   f"Tier: {assigned['tier']} | Rank: {assigned['rank']} | Roles: {', '.join(assigned['role'])}")
 
->>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64
 async def main(debug=False, color_output=False):
     sorted_player = await intialSortingPlayer(players=orginal_players)
     if debug:
         player_performance = await performance(sorted_player)
-<<<<<<< HEAD
-        print(player_performance)
-=======
->>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64
         t1, t2 = buildTeams(player_performance)
         print_team(t1, "Team 1", color_output)
         print_team(t2, "Team 2", color_output)
@@ -384,8 +377,4 @@ async def main(debug=False, color_output=False):
         print("Debug flag not enabled. No team output.")
 
 
-<<<<<<< HEAD
-asyncio.run(main(debug=True, color_output=True))
-=======
 asyncio.run(main(debug=False, color_output=False))
->>>>>>> fad9bec47f36ebe941ca898dcd1466bb346aba64

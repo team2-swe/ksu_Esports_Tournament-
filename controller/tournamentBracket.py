@@ -6,7 +6,8 @@ from discord.ext import commands
 
 
 class TournamentBracket(commands.Cog):
-    def __init__(self, teams):
+    def __init__(self, bot, teams):
+        self.bot = bot
         self.teams = teams
         self.rounds = int(np.log2(len(teams))) if len(teams) % 2 == 0 else int(np.log2(len(teams) + 1))
         self.bracket = []
@@ -277,10 +278,10 @@ class TournamentBracket(commands.Cog):
         return self.bracket[round_num]
 
     @app_commands.command(name="send_bracket_text", description="Send the tournament bracket in text format")
-    async def send_bracket_text(self, ctx):
+    async def send_bracket_text(self, ctx,):
         await ctx.send(f"```\n{self.print_bracket()}```")
     # async def send_bracket(self, ctx):
     #     await ctx.send(embed=self.generate_bracket_with_embed())
 
-async def setup(bot):
-    bot.add_cog(TournamentBracket(bot))
+# async def setup(bot):
+#     await bot.add_cog(TournamentBracket(bot))
