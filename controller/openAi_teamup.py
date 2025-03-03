@@ -89,6 +89,19 @@ async def get_generated_teams(response):
 
     return teams
 
+players = "[{'user_id': 'player10', 'Tier': 'Master', 'Rank': 'II', 'WR': 93, 'Role': ['Top', 'Bottom', 'Jungle', 'Support']}, {'user_id': 'player9', 'Tier': 'Diamond', " \
+          "'Rank': 'II', 'WR': 75, 'Role': ['Mid', 'Top', 'Jungle']}, {'user_id': 'player1', 'Tier': 'Platinum', 'Rank': 'II', 'WR': 56, 'Role': ['Mid', 'Top', 'Jungle']}, " \
+          "{'user_id': 'player3', 'Tier': 'Platinum', 'Rank': 'IV', 'WR': 77, 'Role': ['Bottom', 'Top', 'Jungle', 'Mid', 'Support']}, {'user_id': 'player8', 'Tier': 'Platinum', " \
+          "'Rank': 'V', 'WR': 47, 'Role': ['Mid']}, {'user_id': 'player5', 'Tier': 'Gold', 'Rank': 'I', 'WR': 69, 'Role': ['Top', 'Jungle', 'Mid']}, {'user_id': 'player2', " \
+          "'Tier': 'Gold', 'Rank': 'II', 'Role': ['Support', 'Mid'], 'WR': 73}, {'user_id': 'player7', 'Tier': 'Gold', 'Rank': 'IV', 'WR': 47, 'Role': ['Bottom', 'Mid', 'Top', " \
+          "'Jungle', 'Support']}, {'user_id': 'player6', 'Tier': 'Bronze', 'Rank': 'I', 'WR': 86, 'Role': ['Top', 'Jungle']}, {'user_id': 'player4', 'Tier': 'Bronze', " \
+          "'Rank': 'III', 'WR': 78, 'Role': ['Jungle']}]"
+# player_data = {"players": [{'name': 'player10', 'Tier': 'Master', 'Role': ['Top', 'Bottom', 'Jungle', 'Support']}, {'name': 'player9', 'Tier': 'Diamond',
+# 'Role': ['Mid', 'Top', 'Jungle']}, {'name': 'player1', 'Tier': 'Platinum', 'Role': ['Mid', 'Top', 'Jungle']}, {'name': 'player3', 'Tier': 'Platinum',
+# 'Role': ['Bottom', 'Top', 'Jungle', 'Mid', 'Support']}, {'name': 'player8', 'Tier': 'Platinum', 'Role': ['Mid']}, {'name': 'player5', 'Tier': 'Gold',
+# 'Role': ['Top', 'Jungle', 'Mid']}, {'name': 'player2', 'Tier': 'Gold', 'Role': ['Support', 'Mid']}, {'name': 'player7', 'Tier': 'Gold',
+# 'Role': ['Bottom', 'Mid', 'Top', 'Jungle', 'Support']}, {'name': 'player6', 'Tier': 'Bronze', 'Role': ['Top', 'Jungle']}, {'name': 'player4',
+# 'Tier': 'Bronze', 'Role': ['Jungle']}]}
 players = "[{'player_id': 'player10', 'tier': 'master', 'rank': 'II', 'wr': 93, 'role': ['top', 'Bottom', 'Jungle', 'support']}, {'player_id': 'player9', 'tier': 'diamond', " \
           "'rank': 'II', 'wr': 75, 'role': ['mid', 'top', 'Jungle']}, {'player_id': 'player1', 'tier': 'platinum', 'rank': 'II', 'wr': 56, 'role': ['mid', 'top', 'Jungle']}, " \
           "{'player_id': 'player3', 'tier': 'platinum', 'rank': 'IV', 'wr': 77, 'role': ['bottom', 'top', 'Jungle', 'mid', 'support']}, {'player_id': 'player8', 'tier': 'platinum', " \

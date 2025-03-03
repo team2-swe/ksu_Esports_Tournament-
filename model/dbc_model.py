@@ -155,6 +155,8 @@ class Player_game_info(Tournament_DB):
             role text,
             wins integer,
             losses integer,
+            toxicity integer,
+            mvps integer,
             wr float generated always as (wins * 1.0 / (wins + losses)) stored,
             game_played integer generated always as (wins + losses) stored,
             last_modified text default (datetime('now')),

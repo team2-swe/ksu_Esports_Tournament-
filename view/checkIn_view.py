@@ -65,6 +65,7 @@ class CheckinView(discord.ui.View):
                     please register your player profile below \
                     so we can provide the best gaming experience possible \
                     \
+                    \
                     Have any questions? Contact an Admin for more details!",
                     title=f"Welcome to {interaction.guild} server"
                 )

@@ -14,7 +14,7 @@ class Admin_commands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="checkin_game", description="Checking to play next game")
+    @app_commands.command(name="checkin_game", description="Create check-in for a game")
     @app_commands.describe(timeout="Time in seconds before the command message freezes")
     async def checkin(self, interaction: discord.Interaction, timeout: int = 900):
         # confirm_result = Player.fetch(interaction)
