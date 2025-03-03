@@ -151,6 +151,8 @@ class Game(Tournament_DB):
             role text,
             wins integer,
             losses integer,
+            toxicity integer,
+            mvps integer,
             wr float generated always as (wins * 1.0 / (wins + losses)) stored,
             game_date text default (datetime('now')),
             FOREIGN KEY (user_id) REFERENCES player (user_id) ON DELETE CASCADE
