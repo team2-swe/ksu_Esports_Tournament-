@@ -1,35 +1,24 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import random
 from model.giveaway_model import GiveawayModel
 from view.giveaway_view import GiveawayView
+from config import settings
 
 class Giveaway(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.model = GiveawayModel()
         self.view = GiveawayView()
+        self.model = GiveawayModel() 
+              
 
-    @commands.command()
-    async def giveaway(self, ctx, *, prize_winners: str, role: discord.Role = None):
+    @app_commands.command(description="the first top playeres, number of player random pick")
+    async def giveaway(self, interaction: discord.Interaction, top: int = int(settings.TOP_SCORER), random: int = int(settings.RANDOM_PICK)):
         try:
-            if len(prize_winners.strip()):
-                # Parse the prize and number of winners
-                if "," in prize_winners:
-                    prize, winners = prize_winners.split(",", 1)
-                    prize = prize.strip()
-                    winners = int(winners.strip())
-                else:
-                    prize = prize_winners.strip()
-                    winners = 2
-
-                # Send the confirmation message with buttons
-                await self.view.send_confirmation_message(ctx, prize, winners)
-
-        except ValueError:
-            await ctx.send("Please provide both details (prize and number of winners).")
+            await self.view.send_confirmation_message(interaction=interaction, top=top, random=random)
         except Exception as e:
-            await ctx.send(f"We encountered an error: {e}")
+            await interaction.response.send_message(f"We encountered an error: {e}")
 
 # Setup function for the cog
 async def setup(bot):

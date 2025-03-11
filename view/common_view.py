@@ -93,7 +93,6 @@ class PlayerPrefRole(discord.ui.View):
         game_select = PreferenceSelect()
         self.add_item(game_select)
         await interaction.message.edit(view=self)
-        await interaction.response.defer()
 
     async def selected_preferences(self, interaction : discord.Interaction, choices):
         

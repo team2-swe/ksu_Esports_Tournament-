@@ -153,11 +153,15 @@ class Player_game_info(Tournament_DB):
             tier text,
             rank text,
             role text,
-            wins integer,
-            losses integer,
-            toxicity integer,
-            mvps integer,
+            wins integer integer default 0,
+            losses integer integer default 0,
             wr float generated always as (wins * 1.0 / (wins + losses)) stored,
+            participation integer integer default 0,
+            toxicity integer integer default 0,
+            mvps integer,
+            isPromoted integer default 0,
+            isDEMOTION integer default 0,
+            totalPoint integer default 0,
             game_played integer generated always as (wins + losses) stored,
             last_modified text default (datetime('now')),
             FOREIGN KEY (player_id) REFERENCES player (player_id) ON DELETE CASCADE
@@ -224,6 +228,34 @@ class Player_game_info(Tournament_DB):
             self.connection.commit()
         except Exception as ex:
             logger.error(f"update_tier has failed with error {ex}")
+
+    def giveaway_top(self, top):
+        query = """
+            SELECT pg.player_id, p.user_name
+            FROM playerGameDetail AS pg
+            JOIN player AS p ON pg.player_id = p.player_id
+            ORDER BY pg.totalPoint DESC
+            LIMIT ?
+        """
+        try:
+            self.cursor.execute(query, (top, ))
+            return self.cursor.fetchall()
+        except Exception as ex:
+            logger.error(f"check_in has failed with error {ex}")
+
+    def for_giveaway(self, top):
+            query = """
+                SELECT pg.player_id, p.user_name 
+                FROM playerGameDetail AS pg
+                JOIN player AS p ON pg.player_id = p.player_id
+                ORDER BY pg.totalPoint DESC
+                LIMIT 999999 OFFSET ?
+            """
+            try:
+                self.cursor.execute(query, (top, ))
+                return self.cursor.fetchall()
+            except Exception as ex:
+                logger.error(f"check_in has failed with error {ex}")
 
 class Checkin(Tournament_DB):
 
