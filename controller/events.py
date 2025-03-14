@@ -54,9 +54,10 @@ class EventsController(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member : discord.Member):
-        db = dbc_model.Tournament_DB()
-        dbc_model.Player.remove_player(db, member.id)
-        db.close_db()
+        # db = dbc_model.Tournament_DB()
+        # dbc_model.Player.remove_player(db, member.id)
+        # db.close_db()
+        pass
 
 async def setup(bot):
     await bot.add_cog(EventsController(bot))

@@ -1,6 +1,5 @@
 Log/*
 !Log/.gitkeep
-.env
 venv
 *.db
 *.log
@@ -13,3 +12,4 @@ tournament_dbc
 match_making/*
 bracket_demo/*
 __pycache__/*
+.env copy

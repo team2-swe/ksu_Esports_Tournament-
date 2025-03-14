@@ -20,7 +20,7 @@ class SignUpView(discord.ui.View):
         await self.message.channel.send("This action has timed out, please use a '/register' command to register")
         await self.disable_all_items()
 
-    @discord.ui.button(label="Register", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Register", style=discord.ButtonStyle.success, emoji="®️")
     async def signUp(self, interaction: discord.Interaction, button:discord.ui.Button):
         # remaining_time = self.timeout - (time.time() - self.viewStart_time)
       
@@ -29,8 +29,8 @@ class SignUpView(discord.ui.View):
         # await self.disable_all_items()
         await SharedLogic.execute_signup_model(interaction)
 
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red, emoji="❌")
     async def Cancel(self, interaction: discord.Interaction, button:discord.ui.Button):
-        await interaction.response.send_message("Registration Canceled")
+        await interaction.response.send_message("you have canceled registration")
         await self.disable_all_items()
         self.stop()

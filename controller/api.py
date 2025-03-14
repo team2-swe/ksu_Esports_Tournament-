@@ -56,8 +56,8 @@ class ApiCommon:
         if resultJson:
             player_tier = resultJson[0]['tier'] if 'tier' in resultJson[0] else 'unranked'
             player_rank = resultJson[0]['rank'] if 'rank' in resultJson[0] else 'unranked'
-            player_wins = resultJson[0]['wins'] if 'wins' in resultJson[0] else 0
-            player_losses = resultJson[0]['losses'] if 'losses' in resultJson[0] else 0
+            player_wins = 0 #resultJson[0]['wins'] if 'wins' in resultJson[0] else 0
+            player_losses = 0 #resultJson[0]['losses'] if 'losses' in resultJson[0] else 0
             Player_game_info.update_player_API_info(db, player_id, player_tier, player_rank, player_wins, player_losses)
         else:
             logger.info(f"the player {player_id} is not found in the riot api")

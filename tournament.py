@@ -10,8 +10,6 @@ from common.cached_details import Details_Cached
 '''
 we use bot.start(): 
     to start bot asynchronously
-    we have a chance to customize event loop to increase the performance
-    flexibility because of we can set up custom logic or tasks before or after the bot starts running
 '''
 
 logger = settings.logging.getLogger("discord")

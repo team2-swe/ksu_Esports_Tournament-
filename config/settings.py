@@ -34,10 +34,15 @@ MAX_GAME_LOST = os.getenv("MAX_GAME_LOST")
 OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 PROMPT = os.getenv("prompt")
 
+#For giveaway
+TOP_SCORER = os.getenv("TOP_SCORER")
+RANDOM_PICK = os.getenv("RANDOM_PICK")
+
 # pathlib.Path(__file__) this is the current file where the code is present
 File_Dir = pathlib.Path(__file__).parent # This will give the current directory path where the file is present
 Base_Dir = File_Dir.parent
 controller_dir = Base_Dir / "controller"
+
 
 
 LOGGING_CONFIG = {
