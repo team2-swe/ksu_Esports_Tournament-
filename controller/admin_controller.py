@@ -101,7 +101,7 @@ class Admin_commands(commands.Cog):
                 if found_user:
                     await interaction.response.send_message(f"{player}'s toxicity point has been updated.", ephemeral=True)
                 else:
-                    await interaction.response.send_message(f"{player} could not be found.", ephemeral=True)
+                    await interaction.response.send_message(f"{player} , this username could not be found.", ephemeral=True)
 
             except Exception as e:
                 print(f'An error occured: {e}')
