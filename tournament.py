@@ -30,6 +30,10 @@ async def main():
     db = Tournament_DB()
     Player.createTable(db)
     Game.createTable(db)
+    
+    # Import and create Matches table
+    from model.dbc_model import Matches
+    Matches.createTable(db)
 
 
     @sys_client.event

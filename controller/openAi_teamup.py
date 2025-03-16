@@ -89,8 +89,12 @@ async def main():
 
     print(teams)
 
-import asyncio
-asyncio.run(main())
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
+
+async def setup(bot):
+    pass
 
 
 

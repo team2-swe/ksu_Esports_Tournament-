@@ -243,4 +243,9 @@ async def main():
 
 
 import asyncio
-asyncio.run(main())
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+async def setup(bot):
+    pass

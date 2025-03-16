@@ -2,7 +2,6 @@ discord.py
 requests
 peewee
 python-dotenv
-peewee
 google-auth-oauthlib 
 python-gemini-api 
 google-api-python-client 
@@ -10,3 +9,4 @@ google-auth-httplib2
 pillow
 backoff
 openai
+colorama
