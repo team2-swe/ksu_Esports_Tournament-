@@ -12,30 +12,62 @@ class PlayerModel:
             dbconn = sqlite3.connect("Tournament_DB.db")
             cur = dbconn.cursor()
 
-            # Var to determine if the user passed in exists
-            found_user = False
-
-            # Query to search for player by discordName or riotID
-            query = 'SELECT EXISTS(SELECT discordName FROM player WHERE LOWER(discordName) = ? OR LOWER(riotID) = ? OR discordID = ?)'
-            args = (user, user, user)
-            cur.execute(query, args)
+            # Query to search for player by discordName
+            query = 'SELECT id FROM player WHERE LOWER(user_name) = ?'
+            cur.execute(query, user)
             data = cur.fetchone()
 
             # If the player is found we'll update them
-            if data[0] != 0:
-                # Set the return var to true since the user was found
-                found_user = True
+            if not data:
+                return False
+            
+            player_id = data[0]
 
-                # Create the update statement and add a point
-                query = 'UPDATE Player SET toxicity = toxicity + 1 WHERE LOWER(discordName) = ? OR LOWER(riotID) = ? OR discordID = ?'
-                args = (user, user, user)
-                cur.execute(query, args)
-                dbconn.commit()         
+            # Create the update statement and add a point
+            query = 'UPDATE playerGameDetail SET toxicity = toxicity + 1 WHERE id = ?'
+            cur.execute(query, player_id)
+            dbconn.commit()         
 
-            return found_user
+            return True
+        
         except sqlite3.Error as e:
             print (f'Database error occurred updating toxicity: {e}')
-            return e
+            return False
+
+        finally:
+            cur.close()
+            dbconn.close()
+
+    def vote_mvp(interaction, user):
+        if "<@" in user:
+            user = user[2:-1]
+
+        try:
+            # Create the database connection
+            dbconn = sqlite3.connect("Tournament_DB.db")
+            cur = dbconn.cursor()
+
+            # Query to search for player by discordName
+            query = 'SELECT id FROM player WHERE LOWER(user_name) = ?'
+            cur.execute(query, user)
+            data = cur.fetchone()
+
+            # If the player is found we'll update them
+            if not data:
+                return False
+            
+            player_id = data[0]
+
+            # Create the update statement and add a point
+            query = 'UPDATE playerGameDetail SET toxicity = toxicity + 1 WHERE id = ?'
+            cur.execute(query, player_id)
+            dbconn.commit()         
+
+            return True
+        
+        except sqlite3.Error as e:
+            print (f'Database error occurred updating toxicity: {e}')
+            return False
 
         finally:
             cur.close()
