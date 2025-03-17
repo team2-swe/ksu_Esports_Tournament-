@@ -31,11 +31,11 @@ class EventsController(commands.Cog):
 
                 embed = discord.Embed(
                     color=discord.Colour.dark_teal(),
-                    description="this is our server to play game .........................\
+                    description="Please Register Here .........................\
                     .................................................................\
                         ........................................................\
                             .................................",
-                    title=f"welcome to {member.guild.name} server"
+                    title=f"Welcome To KSU eSports Server"
                 )
                 # embed.set_image(url=f"{ksu_logo_path}")
                 embed.set_thumbnail(url=f"attachment://resized_logo{logo_extention}")

@@ -31,9 +31,10 @@ async def main():
     Player.createTable(db)
     Game.createTable(db)
     
-    # Import and create Matches table
-    from model.dbc_model import Matches
+    # Import and create Matches and MVP_Votes tables
+    from model.dbc_model import Matches, MVP_Votes
     Matches.createTable(db)
+    MVP_Votes.createTable(db)
 
 
     @sys_client.event

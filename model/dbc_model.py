@@ -74,6 +74,7 @@ class Player(Tournament_DB):
             game_id text,
             tag_id text text not null,
             isAdmin integer not null default 0,
+            mvp_count integer not null default 0,
             last_modified text default (datetime('now'))
         )
         """
@@ -373,3 +374,71 @@ class Matches(Tournament_DB):
         """
         self.cursor.execute(game_table_query)
         self.connection.commit()
+        
+class MVP_Votes(Tournament_DB):
+    
+    def createTable(self):
+        vote_table_query = """
+            CREATE TABLE IF NOT EXISTS MVP_Votes (
+            vote_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            match_id text NOT NULL,
+            voter_id bigint NOT NULL,
+            player_id bigint NOT NULL,
+            vote_date timestamp DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (voter_id) REFERENCES player (user_id) ON DELETE CASCADE,
+            FOREIGN KEY (player_id) REFERENCES player (user_id) ON DELETE CASCADE
+        )
+        """
+        self.cursor.execute(vote_table_query)
+        self.connection.commit()
+        
+    def record_vote(self, match_id, voter_id, player_id):
+        """Record an MVP vote"""
+        try:
+            # Check if voter has already voted in this match
+            check_query = "SELECT COUNT(*) FROM MVP_Votes WHERE match_id = ? AND voter_id = ?"
+            self.cursor.execute(check_query, (match_id, voter_id))
+            count = self.cursor.fetchone()[0]
+            
+            if count > 0:
+                # Voter has already voted, update their vote
+                update_query = "UPDATE MVP_Votes SET player_id = ?, vote_date = CURRENT_TIMESTAMP WHERE match_id = ? AND voter_id = ?"
+                self.cursor.execute(update_query, (player_id, match_id, voter_id))
+            else:
+                # New vote
+                insert_query = "INSERT INTO MVP_Votes (match_id, voter_id, player_id) VALUES (?, ?, ?)"
+                self.cursor.execute(insert_query, (match_id, voter_id, player_id))
+                
+            self.connection.commit()
+            return True
+        except Exception as ex:
+            logger.error(f"record_vote failed with error {ex}")
+            return False
+            
+    def get_vote_count(self, match_id):
+        """Get vote counts for a specific match"""
+        try:
+            query = """
+                SELECT player_id, COUNT(*) as vote_count 
+                FROM MVP_Votes 
+                WHERE match_id = ? 
+                GROUP BY player_id 
+                ORDER BY vote_count DESC
+            """
+            self.cursor.execute(query, (match_id,))
+            return self.cursor.fetchall()
+        except Exception as ex:
+            logger.error(f"get_vote_count failed with error {ex}")
+            return []
+            
+    def has_voted(self, match_id, voter_id):
+        """Check if a user has already voted in a match"""
+        try:
+            query = "SELECT COUNT(*) FROM MVP_Votes WHERE match_id = ? AND voter_id = ?"
+            self.cursor.execute(query, (match_id, voter_id))
+            count = self.cursor.fetchone()[0]
+            return count > 0
+        except Exception as ex:
+            logger.error(f"has_voted failed with error {ex}")
+            return False
+
