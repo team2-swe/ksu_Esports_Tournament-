@@ -64,88 +64,79 @@ class PreferenceSelect(discord.ui.Select):
                    discord.SelectOption(label="Bottom", value="bottom"),
                    discord.SelectOption(label="Support", value="support"),
         ]
-        super().__init__(options=options, placeholder="select your prefernec in order, max 3", max_values=3)
+        super().__init__(options=options, placeholder="Select your preference in order (max 3)", max_values=3)
 
     async def callback(self, interaction:discord.Interaction):
         await self.view.selected_preferences(interaction, self.values)
 
-class RoleSelect(discord.ui.Select):
-    def __init__(self):
-        options = [ 
-                   discord.SelectOption(label="rol1", value="rol1"),
-                   discord.SelectOption(label="rol2", value="rol2"),
-                   discord.SelectOption(label="rol3", value="rol3"),
-        ]
-        super().__init__(options=options, placeholder="select your role", max_values=1)
-
-    async def callback(self, interaction:discord.Interaction):
-        await self.view.selected_role(interaction, self.values)       
-
 class PlayerPrefRole(discord.ui.View):
     selected_pref = None 
-    selected_role = None
-    isRoleSelected : bool = False
-    isPrefSelected : bool = False
 
     def __init__(self, *, timeout = 540):
         super().__init__(timeout=timeout)
         self.timeout = timeout
-
-    @discord.ui.select(
-        placeholder="select and set game details",
-        options=[
-            discord.SelectOption(label="your prefernce", value="pref"),
-            discord.SelectOption(label="your role", value="role")
-        ]
-    )
-    async def select_game_details(self, interaction:discord.Interaction, select_item : discord.ui.Select):
-        if select_item.values[0] == "pref":
-            self.children[0].disabled= True   
-            game_select = PreferenceSelect()
-            self.add_item(game_select)
-            await interaction.message.edit(view=self)
-            await interaction.response.defer()
-            self.isPrefSelected = True
-        else:
-            self.children[0].disabled= True
-            game_select = RoleSelect()
-            self.add_item(game_select)
-            await interaction.message.edit(view=self)
-            await interaction.response.defer()
-            self.isRoleSelected = True
+        self.message = None
+        
+        # Add the role preferences dropdown directly without needing an initial selection
+        self.add_item(PreferenceSelect())
 
     async def selected_preferences(self, interaction : discord.Interaction, choices):
-        
-        self.selected_pref = choices 
-        self.children[1].disabled= True
-        await interaction.message.edit(view=self)
-        await interaction.response.defer()
-
-        if not self.isRoleSelected:
-            game_select = RoleSelect()
-            self.add_item(game_select)
-            await interaction.message.edit(view=self)
+        try:
+            # Acknowledge the interaction first
             await interaction.response.defer()
-        db = dbc_model.Tournament_DB()
-        dbc_model.Game.update_pref(db, interaction, self.selected_pref)
-        db.close_db()
-        self.stop()
+            
+            # Save the preferences
+            self.selected_pref = choices 
+            
+            # Update the database
+            db = dbc_model.Tournament_DB()
+            dbc_model.Game.update_pref(db, interaction, self.selected_pref)
+            db.close_db()
+            
+            # Create a response embed
+            roles_list = ", ".join([role.capitalize() for role in choices])
+            embed = discord.Embed(
+                title="Role Preferences Saved",
+                description=f"Your role preferences have been saved: {roles_list}",
+                color=discord.Color.green()
+            )
+            
+            # Send confirmation as ephemeral message (only visible to the user)
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+            # Delete the original message to clean up the chat
+            try:
+                # Try to delete using the stored message reference first
+                if self.message:
+                    await self.message.delete()
+                else:
+                    # If no stored message, use the interaction's message
+                    await interaction.message.delete()
+            except Exception as ex:
+                logger.error(f"Error deleting message: {ex}")
+            
+            self.stop()
+        except discord.errors.InteractionResponded:
+            # If the interaction was already responded to, just continue with the logic
+            logger.info("Interaction was already responded to, continuing with preference update")
+            
+            # Update the database
+            db = dbc_model.Tournament_DB()
+            dbc_model.Game.update_pref(db, interaction, self.selected_pref)
+            db.close_db()
+            
+            # Try to delete the message
+            try:
+                if self.message:
+                    await self.message.delete()
+                else:
+                    await interaction.message.delete()
+            except Exception as ex:
+                logger.error(f"Error deleting message in exception handler: {ex}")
+                
+            self.stop()
 
-    async def selected_role(self, interaction : discord.Interaction, choices):
-        
-        self.selected_role = choices 
-        self.children[1].disabled= True
-        await interaction.message.edit(view=self)
-        await interaction.response.defer()
-
-        if not self.isPrefSelected:
-            game_select = PreferenceSelect()
-            self.add_item(game_select)
-            await interaction.message.edit(view=self)
-            await interaction.response.defer()
-        db = dbc_model.Tournament_DB()
-        dbc_model.Game.update_role(db, interaction, self.selected_role)
-        db.close_db()
+    # selected_role method removed - we only need role preferences now
 
 class Checkin_RegisterModal(Modal, title="Registeration"):
     def __init__(self, timeout : int = 550):

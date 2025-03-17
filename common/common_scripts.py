@@ -49,7 +49,14 @@ async def confirmation_recived(submited : bool = False, timeout : int = 300, int
     if submited:
         role_ref_view = PlayerPrefRole()
 
-        message = await interaction.response.send_message(view=role_ref_view)
+        # Send the message and store the reference in the view
+        message = await interaction.response.send_message(content="Please select your role preferences", view=role_ref_view)
+        role_ref_view.message = message
 
+        # The message will be automatically deleted when the preferences are saved
+        # But we'll also set a timeout as a fallback
         await asyncio.sleep(timeout)
-        await message.delete()
+        try:
+            await message.delete()
+        except:
+            pass  # Message may have already been deleted by the view

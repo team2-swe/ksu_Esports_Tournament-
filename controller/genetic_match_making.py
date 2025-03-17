@@ -20,56 +20,86 @@ class GeneticMatchMaking:
                                 "grandmaster": 1.40, "challenger": 1.45}
 
     async def fetch_player_data(self):
-        """Fetch player data from database and format for the algorithm"""
+        """Fetch player data from database or combined_player_data.json"""
         try:
+            # First, try to get data from database
             players = []
             player_records = self.player_db.get_all_player()
             
-            if not player_records:
-                logger.warning("No players found in database")
-                return []
-                
-            for player_record in player_records:
-                user_id, game_name, tag_id = player_record
-                
-                # Query the Game table to get game-specific data
-                query = """
-                    SELECT tier, rank, role, wins, losses, wr 
-                    FROM game 
-                    WHERE user_id = ? 
-                    ORDER BY game_date DESC 
-                    LIMIT 1
-                """
-                try:
-                    self.game_db.cursor.execute(query, (user_id,))
-                    game_data = self.game_db.cursor.fetchone()
+            if player_records:
+                for player_record in player_records:
+                    user_id, game_name, tag_id = player_record
                     
-                    if game_data:
-                        tier, rank, role_json, wins, losses, wr = game_data
+                    # Query the Game table to get game-specific data
+                    query = """
+                        SELECT tier, rank, role, wins, losses, wr 
+                        FROM game 
+                        WHERE user_id = ? 
+                        ORDER BY game_date DESC 
+                        LIMIT 1
+                    """
+                    try:
+                        self.game_db.cursor.execute(query, (user_id,))
+                        game_data = self.game_db.cursor.fetchone()
                         
-                        # Parse the role JSON string
-                        try:
-                            role = json.loads(role_json) if role_json else []
-                        except json.JSONDecodeError:
-                            logger.error(f"Invalid JSON for role: {role_json}")
-                            role = []
+                        if game_data:
+                            tier, rank, role_json, wins, losses, wr = game_data
                             
-                        player = {
-                            'user_id': user_id,
-                            'game_name': game_name,
-                            'tier': tier.lower() if tier else 'default',
-                            'rank': rank if rank else 'V',
-                            'role': role,
-                            'wr': float(wr) * 100 if wr is not None else 50.0  # Convert to percentage
-                        }
-                        players.append(player)
-                except Exception as ex:
-                    logger.error(f"Error fetching game data for user {user_id}: {ex}")
+                            # Parse the role JSON string
+                            try:
+                                role = json.loads(role_json) if role_json else []
+                            except json.JSONDecodeError:
+                                logger.error(f"Invalid JSON for role: {role_json}")
+                                role = []
+                                
+                            player = {
+                                'user_id': user_id,
+                                'game_name': game_name,
+                                'tier': tier.lower() if tier else 'default',
+                                'rank': rank if rank else 'V',
+                                'role': role,
+                                'wr': float(wr) * 100 if wr is not None else 50.0  # Convert to percentage
+                            }
+                            players.append(player)
+                    except Exception as ex:
+                        logger.error(f"Error fetching game data for user {user_id}: {ex}")
             
+            # If database is empty or had errors, use the JSON file
+            if not players:
+                logger.info("No players found in database, using combined_player_data.json")
+                return await self.load_players_from_json()
+                
             return players
         except Exception as ex:
             logger.error(f"Error fetching player data: {ex}")
+            # Fall back to JSON file
+            return await self.load_players_from_json()
+    
+    async def load_players_from_json(self, count=10):
+        """Load players from the combined_player_data.json file"""
+        try:
+            # Import the function from match_making.py
+            from controller.match_making import get_random_players
+            
+            # Get random players with calculated tiers
+            return get_random_players(count=count)
+        except Exception as ex:
+            logger.error(f"Error loading players from JSON: {ex}")
             return []
+            
+    async def calculate_player_tier(self, player):
+        """Calculate the player's tier rating based on rank"""
+        try:
+            # Import the calculation function from match_making.py
+            from controller.match_making import calculate_player_tier
+            
+            if 'calculated_tier' not in player and 'tier' in player:
+                player['calculated_tier'] = calculate_player_tier(player['tier'])
+                
+            return player
+        except Exception as ex:
+            logger.error(f"Error calculating player tier: {ex}")
+            return player
 
     async def initial_sorting_player(self, players):
         """Sort players based on tier, rank, and win ratio"""
@@ -85,16 +115,35 @@ class GeneticMatchMaking:
         return sorted_players
 
     async def calculate_performance(self, players):
-        """Calculate performance metrics for each player based on role preferences"""
+        """Calculate performance metrics for each player based on role preferences and calculated tier"""
         players_output = []
         
         for player in players:
             player_performance_of_role = {}
             player_role = player.get("role", [])
             
-            # Get player skill factor based on their tier
-            player_tier = player.get("tier", "default").lower()
-            player_skill_factor = self.skill_factor_set.get(player_tier, self.skill_factor_set["default"])
+            # Calculate tier if it's not already calculated
+            if 'calculated_tier' not in player:
+                player = await self.calculate_player_tier(player)
+            
+            # Priority order for skill factor calculation:
+            # 1. Use manual_tier if available (from database)
+            # 2. Use calculated_tier if available (calculated on the fly)
+            # 3. Fall back to tier-based skill factor from skill_factor_set
+            
+            if "manual_tier" in player and player["manual_tier"] is not None:
+                # Scale manual_tier (0-10) to match skill_factor_set range (1.0-1.45)
+                # This gives a smooth progression where each point in manual_tier
+                # roughly equals a 4.5% increase in skill factor
+                player_skill_factor = 1.0 + (player["manual_tier"] / 10.0) * 0.45
+            elif "calculated_tier" in player:
+                # Scale the calculated tier to match our skill_factor_set range
+                # Scale from 1-6 range to match our skill_factor_set values (roughly 1.0-1.45)
+                player_skill_factor = 1.0 + (player["calculated_tier"] - 1) * 0.09
+            else:
+                # Fall back to tier-based skill factor
+                player_tier = player.get("tier", "default").lower()
+                player_skill_factor = self.skill_factor_set.get(player_tier, self.skill_factor_set["default"])
             
             # Calculate relative performance for each role preference
             total_player_roles_processed = 0
@@ -236,11 +285,16 @@ class GeneticMatchMaking:
 
     async def run_matchmaking(self, population_size=100, generations=200, team_size=5):
         """Run the entire matchmaking process"""
-        # Fetch player data from database
+        # Fetch player data from database or JSON file
         players = await self.fetch_player_data()
         if not players or len(players) < team_size * 2:
             logger.error(f"Not enough players for matchmaking. Need {team_size * 2}, have {len(players)}")
             return None, None
+        
+        # Calculate tier for each player if not already present
+        for i, player in enumerate(players):
+            if 'calculated_tier' not in player:
+                players[i] = await self.calculate_player_tier(player)
             
         # Sort and process players
         sorted_players = await self.initial_sorting_player(players)
@@ -259,6 +313,12 @@ class GeneticMatchMaking:
             
         # Decode the best chromosome into two teams
         team1, team2 = self.decode_chromosome(best_chrom, processed_players, team_size=team_size)
+        
+        # Calculate and log the team balance
+        team1_perf = self.team_performance(team1)
+        team2_perf = self.team_performance(team2)
+        balance_diff = abs(team1_perf - team2_perf)
+        logger.info(f"Team balance: {balance_diff:.2f} difference")
         
         # Save results to database if needed
         # await self.save_matchmaking_results(team1, team2)
@@ -288,18 +348,29 @@ async def main():
     matchmaker = GeneticMatchMaking()
     
     # Try to fetch from database first
-    db_players = await matchmaker.fetch_player_data()
+    players = await matchmaker.fetch_player_data()
     
-    # Use test data if database is empty
-    players_to_use = db_players if db_players else test_players
-    if not db_players:
-        logger.warning("Using test data instead of database data")
+    # Use test data if no players could be loaded
+    if not players:
+        logger.warning("Could not load any players, using test data")
+        players = test_players
+    
+    # Display player information
+    print("\n=== Using Real Player Data with Tier Assignment ===")
+    print("\nPlayers:")
+    for player in players:
+        # Ensure tier is calculated if it doesn't exist
+        if 'calculated_tier' not in player:
+            player = await matchmaker.calculate_player_tier(player)
+        
+        tier_display = f"({player.get('calculated_tier', 'N/A'):.2f})" if 'calculated_tier' in player else ""
+        print(f"{player.get('game_name', player.get('user_id'))}: {player.get('tier')} {tier_display}")
     
     # Run the matchmaking process
     team1, team2 = await matchmaker.run_matchmaking(
         population_size=100, 
         generations=200, 
-        team_size=5 if len(players_to_use) >= 10 else len(players_to_use) // 2
+        team_size=5 if len(players) >= 10 else len(players) // 2
     )
     
     if team1 and team2:
@@ -307,11 +378,13 @@ async def main():
         print("\n--- Final Teams ---")
         print("Team 1:")
         for p in team1:
-            print(f"{p.get('game_name', p.get('user_id'))}: {p.get('tier')} {p.get('rank')}, Roles: {p.get('role')}")
+            tier_info = f"Tier: {p.get('calculated_tier', 'N/A'):.2f}" if 'calculated_tier' in p else ""
+            print(f"{p.get('game_name', p.get('user_id'))}: {p.get('tier')} {p.get('rank')}, {tier_info}, Roles: {p.get('role')}")
         
         print("\nTeam 2:")
         for p in team2:
-            print(f"{p.get('game_name', p.get('user_id'))}: {p.get('tier')} {p.get('rank')}, Roles: {p.get('role')}")
+            tier_info = f"Tier: {p.get('calculated_tier', 'N/A'):.2f}" if 'calculated_tier' in p else ""
+            print(f"{p.get('game_name', p.get('user_id'))}: {p.get('tier')} {p.get('rank')}, {tier_info}, Roles: {p.get('role')}")
         
         # Calculate and display team balance metrics
         team1_perf = matchmaker.team_performance(team1)

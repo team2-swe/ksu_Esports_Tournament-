@@ -48,8 +48,11 @@ class CheckinView(discord.ui.View):
             # self.disable_all_items()
             player_preference_role_view = PlayerPrefRole()
 
-            await dm_to_user.send(content="please select your role and prefernec", view=player_preference_role_view)
-            await interaction.response.send_message(f"your checkin inprogress..., Check your DMs for next step", ephemeral=True)
+            # Send the message and store the reference in the view
+            preference_message = await dm_to_user.send(content="Please select your role preferences", view=player_preference_role_view)
+            player_preference_role_view.message = preference_message
+            
+            await interaction.response.send_message(f"Your checkin is in progress... Check your DMs for next step", ephemeral=True)
 
             await asyncio.sleep(self.timeout)
             await message.delete()

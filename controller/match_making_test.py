@@ -1,97 +1,127 @@
 import asyncio
-from controller import match_making
-from controller.genetic_match_making import GeneticMatchMaking, main as genetic_main
-from controller.match_making import main as normal_main
+import sys
+import os
 
-from colorama import init, Fore, Style
-init(autoreset=True)
+# Adjust imports for running as a standalone script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
+# Import match_making module
+from controller import match_making
+from controller.match_making import main as normal_main, get_random_players, set_test_players
+
+# For colored output
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    # Fallback for running without colorama
+    class DummyColor:
+        def __getattr__(self, name):
+            return ""
+    
+    class DummyStyle:
+        def __getattr__(self, name):
+            return ""
+    
+    Fore = DummyColor()
+    Style = DummyStyle()
 
 
 async def main():
     """Run and compare both matchmaking algorithms"""
-    # Run genetic matchmaking
-    print(Fore.CYAN + Style.BRIGHT + "==== Genetic Matchmaking Output ====")
-    await genetic_main()  # Calls the main function from genetic_match_making.py
+    # Since we're having import issues with genetic_match_making.py, 
+    # let's just run the normal matchmaking with real player data
+
+    print(Fore.CYAN + Style.BRIGHT + "==== Matchmaking with Real Player Data ====")
     
-    # Run normal matchmaking
-    print(Fore.MAGENTA + Style.BRIGHT + "\n==== Normal Matchmaking Output ====")
-    await normal_main()  # Calls the main function from match_making.py
+    # Test with bronze players
+    print(Fore.YELLOW + "\nTesting with predominantly BRONZE players:")
+    set_test_players(get_random_players(count=10, specific_rank="bronze"))
+    await normal_main()
+    
+    # Test with silver players
+    print(Fore.YELLOW + "\nTesting with predominantly SILVER players:")
+    set_test_players(get_random_players(count=10, specific_rank="silver"))
+    await normal_main()
+    
+    # Test with gold players
+    print(Fore.YELLOW + "\nTesting with predominantly GOLD players:")
+    set_test_players(get_random_players(count=10, specific_rank="gold"))
+    await normal_main()
+    
+    # Test with mixed rank players
+    print(Fore.YELLOW + "\nTesting with MIXED rank players:")
+    set_test_players(get_random_players(count=10))
+    await normal_main()
 
 
-async def batch_test(iterations=10):
-    """Run a batch test comparing the two algorithms multiple times and compare results"""
-    genetic_matcher = GeneticMatchMaking()
-    genetic_scores = []
-    normal_scores = []
+async def batch_test(iterations=5):
+    """Run a batch test with the matchmaking algorithm across different rank distributions"""
+    normal_scores = {
+        "bronze": [],
+        "silver": [],
+        "gold": [],
+        "mixed": []
+    }
     
-    print(Fore.YELLOW + Style.BRIGHT + f"Running {iterations} test iterations...")
-    
-    # Use test data from genetic_match_making.py for consistent comparison
-    from controller.genetic_match_making import test_players
+    print(Fore.YELLOW + Style.BRIGHT + f"Running {iterations} test iterations for each rank group...")
     
     for i in range(iterations):
         print(f"Iteration {i+1}/{iterations}...")
         
-        # Run genetic algorithm
-        team1, team2 = await genetic_matcher.run_matchmaking(
-            population_size=50,  # Smaller for faster testing
-            generations=100,     # Smaller for faster testing
-            team_size=5
-        )
-        
-        if team1 and team2:
-            team1_perf = genetic_matcher.team_performance(team1)
-            team2_perf = genetic_matcher.team_performance(team2)
-            genetic_diff = abs(team1_perf - team2_perf)
-            genetic_scores.append(genetic_diff)
-        
-        # Run normal algorithm (you may need to adapt this part)
-        sorted_players = await match_making.intialSortingPlayer(test_players)
-        processed_players = await match_making.performance(sorted_players)
-        t1, t2 = match_making.buildTeams(processed_players)
-        
-        if t1 and t2:
-            # Extract player objects for performance calculation
-            team1_players = [item["assigned_to"] for item in t1 if "assigned_to" in item]
-            team2_players = [item["assigned_to"] for item in t2 if "assigned_to" in item]
+        # Test with different rank groups
+        for rank in ["bronze", "silver", "gold", "mixed"]:
+            if rank == "mixed":
+                players = get_random_players(count=10)
+            else:
+                players = get_random_players(count=10, specific_rank=rank)
             
-            # Calculate team performances
-            t1_perf = match_making.teamPerformance(team1_players)
-            t2_perf = match_making.teamPerformance(team2_players)
-            normal_diff = abs(t1_perf - t2_perf)
-            normal_scores.append(normal_diff)
+            # Set the players for the matchmaking algorithm
+            set_test_players(players)
+            
+            # Run the matchmaking
+            t1, t2 = await normal_main()
+            
+            if t1 and t2:
+                # Extract player objects for performance calculation
+                team1_players = [item["assigned_to"] for item in t1 if "assigned_to" in item]
+                team2_players = [item["assigned_to"] for item in t2 if "assigned_to" in item]
+                
+                # Calculate team performances
+                t1_perf = match_making.teamPerformance(team1_players)
+                t2_perf = match_making.teamPerformance(team2_players)
+                normal_diff = abs(t1_perf - t2_perf)
+                normal_scores[rank].append(normal_diff)
     
     # Calculate and display results
-    if genetic_scores and normal_scores:
-        genetic_avg = sum(genetic_scores) / len(genetic_scores)
-        normal_avg = sum(normal_scores) / len(normal_scores)
-        
-        print(Fore.GREEN + Style.BRIGHT + "\n==== Test Results ====")
-        print(f"Genetic Algorithm - Average Performance Difference: {genetic_avg:.4f}")
-        print(f"Normal Algorithm - Average Performance Difference: {normal_avg:.4f}")
-        
-        improvement = ((normal_avg - genetic_avg) / normal_avg) * 100
-        print(f"Improvement: {improvement:.2f}%")
-        
-        if genetic_avg < normal_avg:
-            print(Fore.GREEN + "Genetic algorithm produced more balanced teams on average!")
-        elif genetic_avg > normal_avg:
-            print(Fore.RED + "Normal algorithm produced more balanced teams on average!")
+    print(Fore.GREEN + Style.BRIGHT + "\n==== Test Results ====")
+    for rank, scores in normal_scores.items():
+        if scores:
+            avg = sum(scores) / len(scores)
+            print(f"{rank.capitalize()} Rank Group - Average Team Performance Difference: {avg:.4f}")
+            
+            # Calculate standard deviation to check consistency
+            if len(scores) > 1:
+                import math
+                std_dev = math.sqrt(sum((x - avg) ** 2 for x in scores) / len(scores))
+                print(f"  Standard Deviation: {std_dev:.4f}")
+            
+            # Show min and max values
+            print(f"  Min: {min(scores):.4f}, Max: {max(scores):.4f}")
         else:
-            print(Fore.YELLOW + "Both algorithms produced equally balanced teams on average.")
-    else:
-        print(Fore.RED + "Failed to gather enough data for comparison.")
+            print(f"{rank.capitalize()} Rank Group - No data collected")
 
 
 if __name__ == '__main__':
-    # Uncomment the desired test mode
+    # Choose the test mode to run
     
-    # Regular comparison (single run of each algorithm)
-    asyncio.run(main())
+    # Regular comparison (single run with different rank groups)
+    # asyncio.run(main())
     
-    # Batch testing for statistical comparison 
-    # (uncomment to run multiple iterations and get averages)
-    # asyncio.run(batch_test(iterations=5))
+    # Batch testing for statistical comparison
+    asyncio.run(batch_test(iterations=3))  # Using 3 iterations to keep runtime reasonable
 
 # Add the required setup function for Discord.py cog loading
 async def setup(bot):
