@@ -35,7 +35,7 @@ class Player(Tournament_DB):
             player_id bigint PRIMARY KEY,
             user_name text,
             game_name text,
-            tag_id text text not null,
+            tag_id text not null,
             isAdmin integer not null default 0,
             last_modified text default (datetime('now'))
         )

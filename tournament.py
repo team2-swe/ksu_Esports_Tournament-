@@ -3,7 +3,7 @@ from discord.ext import commands
 import asyncio
 from config import settings
 from discord.ext.commands import errors
-from model.dbc_model import Tournament_DB, Player, Player_game_info
+from model.dbc_model import Tournament_DB, Player, Player_game_info, TeamList, GameDetails
 from common.cached_details import Details_Cached
 
 
@@ -27,6 +27,8 @@ async def main():
     db = Tournament_DB()
     Player.createTable(db)
     Player_game_info.createTable(db)
+    TeamList.createTable(db)
+    GameDetails.createTable(db)
 
 
     @sys_client.event
@@ -78,3 +80,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
