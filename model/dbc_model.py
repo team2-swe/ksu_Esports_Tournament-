@@ -142,6 +142,21 @@ class Player(Tournament_DB):
         except Exception as ex:
             logger.error(f"unable to delete a player_id {member_id} from db with error {ex}")
 
+    def metadata(self):
+        query = "PRAGMA table_info(player)" 
+        try:
+            self.cursor.execute(query)
+            return self.cursor.fetchall()
+        except Exception as ex:
+            logger.error(f"metadata has failed with error {ex}")
+    
+    def generalplayerQuery(self, query, values):
+        try:
+            self.cursor.execute(query, values)
+            self.connection.commit()
+        except Exception as ex:
+            logger.error(f"generalplayerQuery has failed with error {ex}")
+
 class Player_game_info(Tournament_DB):
     
     def createTable(self):
@@ -256,6 +271,44 @@ class Player_game_info(Tournament_DB):
                 return self.cursor.fetchall()
             except Exception as ex:
                 logger.error(f"check_in has failed with error {ex}")
+
+    def exportToGoogleSheet(self):
+            query = """
+                SELECT pg.player_id, p.user_name, pg.tier, pg.rank, pg.role, pg.wins, pg.losses, pg.wr, pg.game_played, pg.participation, pg.toxicity, pg.totalPoint, pg.isPromoted, pg.isDEMOTION
+                FROM playerGameDetail AS pg
+                JOIN player AS p ON pg.player_id = p.player_id
+            """
+            try:
+                self.cursor.execute(query)
+                headers = [desc[0] for desc in self.cursor.description]
+                result =  self.cursor.fetchall()
+                return headers, result
+            except Exception as ex:
+                logger.error(f"exportToGoogleSheet has failed with error {ex}")
+
+    def importToDb(self, query, values):
+            try:
+                self.cursor.execute(query, values)
+                self.connection.commit()
+            except Exception as ex:
+                logger.error(f"exportToGoogleSheet has failed with error {ex}")
+
+    def metadata(self):
+        query = "PRAGMA table_info(playerGameDetail)" 
+        try:
+            self.cursor.execute(query)
+            return self.cursor.fetchall()
+        except Exception as ex:
+            logger.error(f"metadata has failed with error {ex}")
+
+    def isExistPlayerId(self, query, query_param):
+        try:
+            self.cursor.execute(query, query_param)
+            result = self.cursor.fetchone()[0]
+            return result
+            
+        except Exception as ex:
+            logger.error(f"is account exsit  failed with error {ex}")
 
 class Checkin(Tournament_DB):
 

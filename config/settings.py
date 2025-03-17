@@ -38,11 +38,18 @@ PROMPT = os.getenv("prompt")
 TOP_SCORER = os.getenv("TOP_SCORER")
 RANDOM_PICK = os.getenv("RANDOM_PICK")
 
+#Google sheet details
+GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+
 # pathlib.Path(__file__) this is the current file where the code is present
 File_Dir = pathlib.Path(__file__).parent # This will give the current directory path where the file is present
 Base_Dir = File_Dir.parent
 controller_dir = Base_Dir / "controller"
 
+#Google sheet details
+CELL_RANGE = os.getenv("CELL_RANGE")
+GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+LOL_service_path = Base_Dir/ "config/LOL_serviceAccount_.json"
 
 
 LOGGING_CONFIG = {
