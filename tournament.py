@@ -24,6 +24,7 @@ async def main():
     intents.members = True  # Make sure to enable the intent to access members' information.
     intents.message_content = True
 
+
     sys_client = commands.Bot(command_prefix="$", intents=intents)
 
     # Initialize the database and create tables
@@ -39,7 +40,7 @@ async def main():
 
     @sys_client.event
     async def on_ready():
-        logger.info(f"loged into server as {sys_client.user}")
+        logger.info(f"Logged into server as {sys_client.user}")
 
         #create a channels and save cached created channels on all server bot is running
         for guild in sys_client.guilds:
@@ -82,7 +83,10 @@ async def main():
             await ctx.send("Something went wrong, from global error handler")
     
     # Run the bot with your token
-    await sys_client.start(settings.DISCORD_API_SECRET, reconnect=True)
+    try:
+        await sys_client.start(settings.DISCORD_API_SECRET, reconnect=True)
+    finally:
+        await sys_client.close()
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -253,9 +253,11 @@ class GeneticMatchMaking:
     async def save_matchmaking_results(self, team1, team2):
         """Save the matchmaking results to the database"""
         try:
-            # For future implementation: save teams to a new table or update Matches table
-            # This method can be expanded when you decide how to store match data
-            team_id = f"match_{int(asyncio.get_event_loop().time())}"
+            # Get the next match ID
+            from model.dbc_model import Matches
+            matches_db = Matches(db_name=settings.DATABASE_NAME)
+            match_id = matches_db.get_next_match_id()
+            team_id = f"match_{match_id}"
             
             # Example of how you might save to Matches table
             for player in team1:

@@ -173,6 +173,42 @@ class Player(Tournament_DB):
             self.connection.commit()
         except Exception as ex:
             logger.error(f"unable to delete a user_id {member_id} from db with error {ex}")
+            
+    def increment_mvp_count(self, player_id):
+        """Increment the MVP count for a player"""
+        try:
+            # Get current MVP count
+            query = "SELECT mvp_count FROM player WHERE user_id = ?"
+            self.cursor.execute(query, (player_id,))
+            result = self.cursor.fetchone()
+            
+            if result:
+                current_count = result[0] if result[0] is not None else 0
+                new_count = current_count + 1
+                
+                # Update the MVP count
+                update_query = "UPDATE player SET mvp_count = ? WHERE user_id = ?"
+                self.cursor.execute(update_query, (new_count, player_id))
+                self.connection.commit()
+                return new_count
+            return None
+        except Exception as ex:
+            logger.error(f"increment_mvp_count failed with error {ex}")
+            return None
+            
+    def get_mvp_count(self, player_id):
+        """Get the current MVP count for a player"""
+        try:
+            query = "SELECT mvp_count FROM player WHERE user_id = ?"
+            self.cursor.execute(query, (player_id,))
+            result = self.cursor.fetchone()
+            
+            if result:
+                return result[0] if result[0] is not None else 0
+            return 0
+        except Exception as ex:
+            logger.error(f"get_mvp_count failed with error {ex}")
+            return 0
 
 class Game(Tournament_DB):
     
@@ -361,6 +397,7 @@ class Matches(Tournament_DB):
 
         game_table_query = """
             CREATE TABLE IF NOT EXISTS Matches (
+            match_id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id bigint,
             game_name text,
             win text,
@@ -374,6 +411,18 @@ class Matches(Tournament_DB):
         """
         self.cursor.execute(game_table_query)
         self.connection.commit()
+        
+    def get_next_match_id(self):
+        """Get the next available match ID"""
+        try:
+            self.cursor.execute("SELECT MAX(match_id) FROM Matches")
+            result = self.cursor.fetchone()
+            if result and result[0] is not None:
+                return result[0] + 1
+            return 1
+        except Exception as ex:
+            logger.error(f"get_next_match_id failed with error {ex}")
+            return 1
         
 class MVP_Votes(Tournament_DB):
     
@@ -441,4 +490,57 @@ class MVP_Votes(Tournament_DB):
         except Exception as ex:
             logger.error(f"has_voted failed with error {ex}")
             return False
+    
+    def get_mvp_winner(self, match_id):
+        """Get the player with the most votes (the MVP)"""
+        try:
+            # Get vote counts
+            results = self.get_vote_count(match_id)
+            
+            if results and len(results) > 0:
+                # Return player_id with most votes
+                return results[0][0]
+            return None
+        except Exception as ex:
+            logger.error(f"get_mvp_winner failed with error {ex}")
+            return None
+            
+    def finalize_mvp_voting(self, match_id):
+        """Determine the MVP and update their MVP count
+        
+        Args:
+            match_id: The match ID to finalize
+            
+        Returns:
+            Tuple of (player_id, player_name, new_mvp_count) if successful, 
+            None otherwise
+        """
+        try:
+            # Get the winner (player with most votes)
+            winner_id = self.get_mvp_winner(match_id)
+            
+            if winner_id:
+                # Get player DB
+                player_db = Player(db_name=self.db_name)
+                
+                # Increment MVP count
+                new_count = player_db.increment_mvp_count(winner_id)
+                
+                # Get player name
+                self.cursor.execute(
+                    "SELECT game_name FROM player WHERE user_id = ?",
+                    (winner_id,)
+                )
+                name_result = self.cursor.fetchone()
+                player_name = name_result[0] if name_result else "Unknown Player"
+                
+                # Mark this match as having a finalized MVP
+                vote_counts = self.get_vote_count(match_id)
+                vote_count = vote_counts[0][1] if vote_counts else 0
+                
+                return (winner_id, player_name, new_count, vote_count)
+            return None
+        except Exception as ex:
+            logger.error(f"finalize_mvp_voting failed with error {ex}")
+            return None
 

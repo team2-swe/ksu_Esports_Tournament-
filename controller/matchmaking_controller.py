@@ -435,8 +435,11 @@ class MatchmakingController(commands.Cog):
                 matchmaker = GeneticMatchMaking()
 
                 for pool_idx, pool in enumerate(pools):
-                    # Create a match ID
-                    match_id = f"match_{int(asyncio.get_event_loop().time())}_{pool_idx + 1}"
+                    # Get the next match ID
+                    from model.dbc_model import Matches
+                    matches_db = Matches(db_name=settings.DATABASE_NAME)
+                    match_num = matches_db.get_next_match_id()
+                    match_id = f"match_{match_num}"
 
                     # Split pool into balanced teams
                     team1, team2 = [], []

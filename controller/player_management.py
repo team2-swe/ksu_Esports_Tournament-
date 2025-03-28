@@ -534,7 +534,7 @@ class PlayerManagement(commands.Cog):
                             game_query,
                             (
                                 player_id,
-                                "League of Legends",
+                                summoner_name,
                                 tier,
                                 rank,
                                 json.dumps(random_lanes),
