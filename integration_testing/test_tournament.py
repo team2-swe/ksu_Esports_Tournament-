@@ -35,3 +35,5 @@ async def test_bot_fixture(bot_setup):
     assert "Setting Up Bot" in bot_setup
     assert "Bot Running" in bot_setup
 
+
+
