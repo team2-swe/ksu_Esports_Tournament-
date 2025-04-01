@@ -1,4 +1,3 @@
-Based on the project files and documentation provided (especially the **KSU Tournament Bot.pdf**), here's a comprehensive `README.md` draft for your **KSU Esports Tournament Bot** project:
 
 ---
 
