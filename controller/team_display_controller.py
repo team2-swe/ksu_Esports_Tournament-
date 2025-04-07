@@ -1,20 +1,23 @@
 import discord
 import json
 import re
+import os
 from discord import app_commands
 from discord.ext import commands
 from config import settings
 from model.dbc_model import Tournament_DB
+from view.team_announcement_image import create_team_matchup_image
 
 logger = settings.logging.getLogger("discord")
 
 class MatchSelectorView(discord.ui.View):
     """View with a dropdown to select a match ID"""
     
-    def __init__(self, controller, announcement_channel, match_ids, timeout=60):
+    def __init__(self, controller, announcement_channel, match_ids, format="image", timeout=60):
         super().__init__(timeout=timeout)
         self.controller = controller
         self.announcement_channel = announcement_channel
+        self.format = format
         
         # Create select menu with match options
         select = discord.ui.Select(
@@ -41,11 +44,12 @@ class MatchSelectorView(discord.ui.View):
         # Get selected match ID
         match_id = interaction.data['values'][0]
         
-        # Pass to controller to handle the announcement
+        # Pass to controller to handle the announcement with format
         await self.controller.announce_selected_match(
             interaction, 
             match_id, 
-            self.announcement_channel
+            self.announcement_channel,
+            self.format
         )
         
         # Stop listening for interactions
@@ -186,12 +190,14 @@ class TeamDisplayController(commands.Cog):
     
     @app_commands.command(name="announce_teams", description="Announce teams to a channel using a dropdown")
     @app_commands.describe(
-        channel="The channel to announce to (defaults to tournament announcement channel)"
+        channel="The channel to announce to (defaults to tournament announcement channel)",
+        format="Announcement format: 'image' (default), 'text', or 'both'"
     )
     async def announce_teams(
         self, 
         interaction: discord.Interaction,
-        channel: discord.TextChannel = None
+        channel: discord.TextChannel = None,
+        format: str = "image"
     ):
         """
         Admin command to announce teams to a channel using a dropdown to select the match
@@ -267,12 +273,17 @@ class TeamDisplayController(commands.Cog):
                     )
                     return
                 
+                # Normalize format parameter
+                format_lower = format.lower()
+                if format_lower not in ["image", "text", "both"]:
+                    format_lower = "image"  # Default to image if invalid
+                
                 # Create select menu for match selection
-                view = MatchSelectorView(self, announcement_channel, match_ids)
+                view = MatchSelectorView(self, announcement_channel, match_ids, format_lower)
                 
                 # Send message with dropdown
                 await interaction.response.send_message(
-                    f"Select a match to announce to {announcement_channel.mention}:",
+                    f"Select a match to announce to {announcement_channel.mention} (Format: {format_lower}):",
                     view=view,
                     ephemeral=True
                 )
@@ -290,10 +301,16 @@ class TeamDisplayController(commands.Cog):
                 ephemeral=True
             )
     
-    async def announce_selected_match(self, interaction, match_id, announcement_channel):
+    async def announce_selected_match(self, interaction, match_id, announcement_channel, format="image"):
         """
         Announce the selected match to the specified channel
         Called by the MatchSelectorView when a match is selected
+        
+        Args:
+            interaction: The Discord interaction
+            match_id: The match ID to announce
+            announcement_channel: The channel to send the announcement to
+            format: Announcement format - "image", "text", or "both"
         """
         await interaction.response.defer(thinking=True)
         
@@ -417,20 +434,110 @@ class TeamDisplayController(commands.Cog):
             
             mentions_str = " ".join(mentions) if mentions else ""
             
-            # Send the announcement
+            # Prepare base announcement message
             announcement_message = f"**🏆 Team Announcement for Match: `{match_id}` 🏆**\n\n"
             if mentions:
                 announcement_message += f"Players: {mentions_str}\n\n"
             
-            announcement_message += role_matchup_text
+            # Send announcement based on format
+            image_path = None
             
-            await announcement_channel.send(
-                content=announcement_message,
-                embeds=team_embeds
-            )
+            # Format-specific handling
+            try:
+                # For image or both formats, generate the image
+                if format.lower() in ["image", "both"]:
+                    # Assign roles to players (needed for image generation)
+                    from controller.genetic_match_making import GeneticMatchMaking
+                    matchmaker = GeneticMatchMaking()
+                    
+                    # Assign roles if we have enough players
+                    if len(team1_players) >= 5:
+                        team1_players = matchmaker.assign_team_roles(team1_players)
+                    if len(team2_players) >= 5:
+                        team2_players = matchmaker.assign_team_roles(team2_players)
+                    
+                    # Generate the team matchup image
+                    image_path = create_team_matchup_image(match_id, team1_players, team2_players)
+                    
+                    # Check if image was successfully created
+                    if image_path is None or not os.path.exists(image_path):
+                        logger.error("Image generation failed to produce a valid file")
+                        if format.lower() == "image":
+                            format = "text"
+                            await interaction.followup.send(
+                                "Failed to generate image announcement. Falling back to text format."
+                            )
+            except Exception as image_ex:
+                logger.error(f"Error generating team image: {image_ex}")
+                # If image generation fails but format is "image", fall back to text
+                if format.lower() == "image":
+                    format = "text"
+                    await interaction.followup.send(
+                        "Failed to generate image announcement. Falling back to text format."
+                    )
             
+            # Send based on final format
+            if format.lower() == "image" and image_path and os.path.exists(image_path):
+                # Image-only announcement with minimal text
+                image_announcement = f"**🏆 Team Matchup: `{match_id}` 🏆**"
+                if mentions:
+                    image_announcement += f"\nPlayers: {mentions_str}"
+                
+                # Send image with minimal text
+                try:
+                    with open(image_path, "rb") as img_file:
+                        image_discord = discord.File(img_file, filename=f"match_{match_id}.png")
+                        await announcement_channel.send(content=image_announcement, file=image_discord)
+                except (FileNotFoundError, PermissionError, OSError) as file_error:
+                    logger.error(f"Error opening image file: {file_error}")
+                    # Fall back to text mode if we can't open the image
+                    format = "text"
+                    announcement_message += role_matchup_text
+                    await announcement_channel.send(
+                        content=announcement_message,
+                        embeds=team_embeds
+                    )
+            
+            elif format.lower() == "text" or not image_path:
+                # Text-only announcement with embeds
+                announcement_message += role_matchup_text
+                await announcement_channel.send(
+                    content=announcement_message,
+                    embeds=team_embeds
+                )
+            
+            elif format.lower() == "both" and image_path and os.path.exists(image_path):
+                # Send both image and text versions
+                # First send image
+                try:
+                    with open(image_path, "rb") as img_file:
+                        image_discord = discord.File(img_file, filename=f"match_{match_id}.png")
+                        await announcement_channel.send(
+                            content=f"**🏆 Team Matchup: `{match_id}` 🏆**",
+                            file=image_discord
+                        )
+                except (FileNotFoundError, PermissionError, OSError) as file_error:
+                    logger.error(f"Error opening image file for 'both' format: {file_error}")
+                    # Skip the image but still send the text part
+                
+                # Then send detailed text announcement with embeds
+                detailed_message = f"**📊 Detailed Team Information for Match: `{match_id}` 📊**\n\n"
+                detailed_message += role_matchup_text
+                await announcement_channel.send(
+                    content=detailed_message,
+                    embeds=team_embeds
+                )
+            
+            # Clean up temporary image file if created
+            if image_path and os.path.exists(image_path):
+                try:
+                    os.remove(image_path)
+                except Exception as cleanup_ex:
+                    logger.error(f"Error cleaning up temporary image: {cleanup_ex}")
+            
+            # Confirm to admin
             await interaction.followup.send(
-                f"Teams for Match ID '{match_id}' have been announced in {announcement_channel.mention}."
+                f"Teams for Match ID '{match_id}' have been announced in {announcement_channel.mention} using {format} format."
             )
             
         except Exception as ex:
