@@ -486,18 +486,22 @@ class MatchmakingController(commands.Cog):
                     team1_perf = matchmaker.team_performance(team1)
                     team2_perf = matchmaker.team_performance(team2)
                     diff = abs(team1_perf - team2_perf)
+                    
+                    # Calculate role matchup score for display
+                    role_matchup_score = matchmaker.calculate_role_matchup_score(team1, team2)
+                    role_matchup_percent = round(role_matchup_score * 100)
 
                     # Create embeds for the teams
                     team1_embed = discord.Embed(
                         title=f"Game {pool_idx + 1} - Team 1 (Match ID: {match_id})",
                         color=discord.Color.blue(),
-                        description=f"Game {pool_idx + 1} of {game_count}"
+                        description=f"Game {pool_idx + 1} of {game_count}\nRole Matchup Balance: {role_matchup_percent}%"
                     )
 
                     team2_embed = discord.Embed(
                         title=f"Game {pool_idx + 1} - Team 2 (Match ID: {match_id})",
                         color=discord.Color.red(),
-                        description=f"Game {pool_idx + 1} of {game_count}"
+                        description=f"Game {pool_idx + 1} of {game_count}\nRole Matchup Balance: {role_matchup_percent}%"
                     )
 
                     # Role color mapping (using League of Legends colors)
@@ -527,8 +531,14 @@ class MatchmakingController(commands.Cog):
                         
                         role_str = '  '.join(colored_roles) if colored_roles else 'None'
 
-                        # Try to get assigned role with color
-                        assigned_role = roles[0] if roles else "TBD"
+                        # Use the assigned_role from genetic algorithm if available
+                        if "assigned_role" in player:
+                            assigned_role = player["assigned_role"]
+                        else:
+                            # Fallback to first role preference
+                            assigned_role = roles[0] if roles else "TBD"
+                            logger.warning(f"Player {name} missing assigned_role, using first preference")
+                        
                         assigned_role_lower = assigned_role.lower()
                         assigned_emoji = role_colors.get(assigned_role_lower, role_colors["tbd"])
                         colored_assigned = f"{assigned_emoji} {assigned_role.capitalize()}"
@@ -554,8 +564,14 @@ class MatchmakingController(commands.Cog):
                         
                         role_str = '  '.join(colored_roles) if colored_roles else 'None'
 
-                        # Try to get assigned role with color
-                        assigned_role = roles[0] if roles else "TBD"
+                        # Use the assigned_role from genetic algorithm if available
+                        if "assigned_role" in player:
+                            assigned_role = player["assigned_role"]
+                        else:
+                            # Fallback to first role preference
+                            assigned_role = roles[0] if roles else "TBD"
+                            logger.warning(f"Player {name} missing assigned_role, using first preference")
+                        
                         assigned_role_lower = assigned_role.lower()
                         assigned_emoji = role_colors.get(assigned_role_lower, role_colors["tbd"])
                         colored_assigned = f"{assigned_emoji} {assigned_role.capitalize()}"
@@ -570,11 +586,41 @@ class MatchmakingController(commands.Cog):
                     team1_embed.set_footer(text=f"Team 1 Performance: {team1_perf:.2f}")
                     team2_embed.set_footer(text=f"Team 2 Performance: {team2_perf:.2f}")
 
+                    # Create role matchup comparison
+                    standard_roles = ["top", "jungle", "mid", "bottom", "support"]
+                    role_matchup_text = "**Role Matchups:**\n"
+                    
+                    # Get role emoji mapping
+                    role_emoji_map = {
+                        "top": "🟥 Top",
+                        "jungle": "🟩 Jungle",
+                        "mid": "🟨 Mid", 
+                        "bottom": "🟦 Bottom",
+                        "support": "🟪 Support"
+                    }
+                    
+                    for role in standard_roles:
+                        team1_player = next((p for p in team1 if p.get("assigned_role") == role), None)
+                        team2_player = next((p for p in team2 if p.get("assigned_role") == role), None)
+                        
+                        if team1_player and team2_player:
+                            team1_name = team1_player.get('game_name', 'Unknown')
+                            team2_name = team2_player.get('game_name', 'Unknown')
+                            team1_tier = team1_player.get('tier', 'default').capitalize()
+                            team2_tier = team2_player.get('tier', 'default').capitalize()
+                            team1_rank = team1_player.get('rank', '')
+                            team2_rank = team2_player.get('rank', '')
+                            
+                            role_display = role_emoji_map.get(role, role.capitalize())
+                            role_matchup_text += f"{role_display}: {team1_name} ({team1_tier} {team1_rank}) vs {team2_name} ({team2_tier} {team2_rank})\n"
+                    
                     # Instructions for recording match outcome
                     instructions = (
                         f"**Matchmaking - Game {pool_idx + 1} of {game_count}**\n"
                         f"Match ID: `{match_id}`\n"
-                        f"Team Performance Difference: {diff:.2f}\n\n"
+                        f"Team Performance Difference: {diff:.2f}\n"
+                        f"Role Matchup Balance: {role_matchup_percent}%\n\n"
+                        f"{role_matchup_text}\n"
                         f"To record match results, use: `/record_match_result {match_id} <winning_team>`\n"
                         f"where <winning_team> is either 1 or 2."
                     )

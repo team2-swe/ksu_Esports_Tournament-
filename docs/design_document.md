@@ -290,9 +290,28 @@ The bot uses a central configuration file (`config/settings.py`):
 3. Configures logging parameters
 4. Sets paths for database and controller files
 
-## 10. Code Extension Guide
+## 10. Available Commands
 
-### 10.1 Adding a New Command
+### 10.1 Admin Commands
+- **/run_matchmaking** - Create balanced teams based on player data
+- **/swap_team_players** - Swap players between teams for better balance
+- **/display_teams** - Display current teams for a specific match
+- **/announce_teams** - Announce teams to a channel (default: tournament channel)
+- **/record_match_result** - Record which team won a match
+- **/view_player_tier** - View a player's tier/rank information
+- **/adjust_player_tier** - Manually adjust a player's tier value
+- **/reset_player_tier** - Reset a player's manual tier adjustment
+- **/list_players** - View registered players and their information
+- **/player_match_history** - View a player's match history
+
+### 10.2 Player Commands
+- **/signup** - Register for the tournament
+- **/role** - Set role preferences
+- **/vote_mvp** - Vote for the MVP in a match
+
+## 11. Code Extension Guide
+
+### 11.1 Adding a New Command
 
 1. Identify appropriate controller file
 2. Add command using decorator pattern:
@@ -303,23 +322,39 @@ The bot uses a central configuration file (`config/settings.py`):
        # Command implementation
    ```
 
-### 10.2 Adding a New Database Table
+### 11.2 Team Swapping System
+
+The bot includes a team swapping feature that allows admins to manually swap players between teams:
+
+1. **Command**: `/swap_team_players <match_id>`
+2. **Controller**: `team_swap_controller.py`
+3. **View**: `team_swap_view.py`
+4. **Database Operations**:
+   - Queries match data and player assignments
+   - Updates `Matches` table to swap team assignments (`teamUp` values)
+5. **Interface**:
+   - Displays teams with player information
+   - Provides dropdowns to select players from each team
+   - Calculates team balance before and after swaps
+   - Provides visual feedback of the swap results
+
+### 11.3 Adding a New Database Table
 
 1. Create a new class in `model/dbc_model.py`
 2. Implement `createTable` method with SQL schema
 3. Add necessary query methods
 4. Initialize table creation in `tournament.py`
 
-### 10.3 Creating a New UI Component
+### 11.4 Creating a New UI Component
 
 1. Create a class inheriting from `discord.ui.View`
 2. Add buttons/selects in constructor
 3. Implement callback methods for interactions
 4. Use the view in command responses
 
-## 11. Sequence Diagrams
+## 12. Sequence Diagrams
 
-### 11.1 Matchmaking Process
+### 12.1 Matchmaking Process
 
 ```
 Admin                    Bot                        Database
@@ -344,7 +379,7 @@ Admin                    Bot                        Database
   |<----------------------|                            |
 ```
 
-### 11.2 MVP Voting Process
+### 12.2 MVP Voting Process
 
 ```
 Admin               Bot                  Database             Players
@@ -377,7 +412,66 @@ Admin               Bot                  Database             Players
   |<-----------------|                      |                    |
 ```
 
-## 12. File Structure Reference
+### 12.3 Team Swap Process
+
+```
+Admin               Bot                  Database
+  |                  |                      |
+  | swap_team_players|                      |
+  |----------------->|                      |
+  |                  | get_match_data()     |
+  |                  |--------------------->|
+  |                  |<---------------------|
+  |                  |                      |
+  |                  | create_swap_ui()     |
+  |<-----------------|                      |
+  |                  |                      |
+  | select_players   |                      |
+  |----------------->|                      |
+  |                  | swap_players()       |
+  |                  |--------------------->|
+  |                  |<---------------------|
+  |                  |                      |
+  |                  | update_team_display()|
+  |<-----------------|                      |
+  |                  |                      |
+  | confirm/cancel   |                      |
+  |----------------->|                      |
+  |                  | finalize_swap()      |
+  |<-----------------|                      |
+```
+
+### 12.4 Team Display and Announcement Process
+
+```
+Admin               Bot                  Database             Channel
+  |                  |                      |                    |
+  | display_teams    |                      |                    |
+  |----------------->|                      |                    |
+  |                  | get_match_data()     |                    |
+  |                  |--------------------->|                    |
+  |                  |<---------------------|                    |
+  |                  |                      |                    |
+  |                  | create_team_embeds() |                    |
+  |                  |----------------------|                    |
+  |                  |                      |                    |
+  | team display     |                      |                    |
+  |<-----------------|                      |                    |
+  |                  |                      |                    |
+  | announce_teams   |                      |                    |
+  |----------------->|                      |                    |
+  |                  | get_match_data()     |                    |
+  |                  |--------------------->|                    |
+  |                  |<---------------------|                    |
+  |                  |                      |                    |
+  |                  | team announcement    |                    |
+  |                  |-------------------------------------->|
+  |                  |                      |                    |
+  | confirmation     |                      |                    |
+  |<-----------------|                      |                    |
+```
+
+## 13. File Structure Reference
 
 ```
 KSU_Esports_Tournament/
@@ -397,13 +491,18 @@ KSU_Esports_Tournament/
 │   ├── match_results_controller.py # Match results
 │   ├── matchmaking_controller.py # Matchmaking commands
 │   ├── mvp_voting_controller.py # MVP voting system
-│   └── player_signup.py       # Player registration
+│   ├── player_signup.py       # Player registration
+│   ├── team_swap_controller.py # Team swapping
+│   └── team_display_controller.py # Team display and announcement
 ├── model/
 │   ├── button_state.py        # Button state tracking
 │   ├── checkin_model.py       # Check-in data model
 │   └── dbc_model.py           # Core database models
 ├── view/
 │   ├── common_view.py         # Shared UI components
-│   └── signUp_view.py         # Sign-up UI
+│   ├── signUp_view.py         # Sign-up UI
+│   ├── match_results_view.py  # Match results UI
+│   ├── mvp_vote_view.py       # MVP voting UI
+│   └── team_swap_view.py      # Team swapping UI
 └── tournament.py              # Main application entry
 ```

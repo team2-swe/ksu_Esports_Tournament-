@@ -174,16 +174,221 @@ class GeneticMatchMaking:
         """Convert a chromosome (list of indices) into two teams"""
         team1 = [players[i] for i in chromosome[:team_size]]
         team2 = [players[i] for i in chromosome[team_size:]]
+        
+        # Assign optimal roles to each team
+        team1 = self.assign_team_roles(team1)
+        team2 = self.assign_team_roles(team2)
+        
         return team1, team2
+        
+    def assign_team_roles(self, team):
+        """
+        Assign optimal roles to team members ensuring each role is assigned exactly once
+        
+        Args:
+            team: List of player dictionaries with roleBasedPerformance data
+            
+        Returns:
+            Team with assigned_role added to each player
+        """
+        # Standard roles in League of Legends
+        standard_roles = ["top", "jungle", "mid", "bottom", "support"]
+        
+        # Create a performance matrix for all player-role combinations
+        performance_matrix = {}
+        for player_idx, player in enumerate(team):
+            performance_matrix[player_idx] = {}
+            for role in standard_roles:
+                # Get player's performance for this role, or a very low value if not in preferences
+                performance = player.get("roleBasedPerformance", {}).get(role, -100.0)
+                performance_matrix[player_idx][role] = performance
+        
+        # Find optimal role assignment using a greedy algorithm
+        assigned_roles = {}
+        assigned_players = set()
+        available_roles = set(standard_roles)
+        
+        # Make a copy of the team to avoid modifying the input parameter
+        updated_team = []
+        for player in team:
+            updated_team.append(player.copy())
+        
+        # Sort roles by maximum performance difference between players
+        role_priority = []
+        for role in standard_roles:
+            # Calculate performance spread for this role
+            performances = [performance_matrix[player_idx][role] for player_idx in range(len(team))]
+            performances = [p for p in performances if p > -100.0]  # Filter out unavailable roles
+            if performances:
+                spread = max(performances) - min(performances)
+                role_priority.append((role, spread))
+            else:
+                role_priority.append((role, 0))
+        
+        # Sort roles by performance spread (highest first)
+        role_priority.sort(key=lambda x: x[1], reverse=True)
+        
+        # Assign roles in priority order
+        for role, _ in role_priority:
+            if role not in available_roles:
+                continue
+                
+            # Find best player for this role who hasn't been assigned yet
+            best_perf = -float('inf')
+            best_player = None
+            
+            for player_idx in range(len(team)):
+                if player_idx in assigned_players:
+                    continue
+                    
+                performance = performance_matrix[player_idx][role]
+                if performance > best_perf and performance > -100.0:
+                    best_perf = performance
+                    best_player = player_idx
+            
+            # If we found a suitable player, assign them this role
+            if best_player is not None:
+                assigned_roles[best_player] = role
+                assigned_players.add(best_player)
+                available_roles.remove(role)
+        
+        # Handle any unassigned roles or players with "forced" role
+        if len(assigned_roles) < len(team) or len(available_roles) > 0:
+            # Assign remaining players to remaining roles
+            unassigned_players = [i for i in range(len(team)) if i not in assigned_players]
+            for player_idx in unassigned_players:
+                if available_roles:
+                    # Find best available role for this player
+                    best_role = None
+                    best_perf = -float('inf')
+                    
+                    for role in available_roles:
+                        perf = performance_matrix[player_idx][role]
+                        if perf > best_perf:
+                            best_perf = perf
+                            best_role = role
+                    
+                    # Assign this player to the best available role
+                    if best_role:
+                        assigned_roles[player_idx] = best_role
+                        available_roles.remove(best_role)
+                        assigned_players.add(player_idx)
+                    else:
+                        # Fall back to "forced" role if no suitable role found
+                        assigned_roles[player_idx] = "forced"
+        
+        # Update team with assigned roles
+        for player_idx, role in assigned_roles.items():
+            updated_team[player_idx]["assigned_role"] = role
+        
+        # Ensure every player has an assigned role (should not happen, but as a fallback)
+        for player_idx, player in enumerate(updated_team):
+            if "assigned_role" not in player:
+                logger.warning(f"Player {player.get('game_name', 'Unknown')} had no assigned role after team assignment")
+                player["assigned_role"] = "forced"
+        
+        return updated_team
 
     def calculate_fitness(self, chromosome, players, team_size=5):
-        """Calculate fitness of a chromosome (balance between teams)"""
+        """
+        Calculate fitness of a chromosome based on:
+        1. Overall team balance
+        2. Role-vs-role balance (matching similar ranks in the same role)
+        
+        Returns a fitness score where higher is better.
+        """
+        # Decode the chromosome to get teams with assigned roles
         team1, team2 = self.decode_chromosome(chromosome, players, team_size)
+        
+        # Part 1: Calculate overall team balance
         performance1 = self.team_performance(team1)
         performance2 = self.team_performance(team2)
-        diff = abs(performance1 - performance2)
-        # Return negative difference: higher fitness means more balanced teams
-        return -diff
+        team_diff = abs(performance1 - performance2)
+        
+        # Maximum possible difference to normalize the score
+        max_team_diff = max(performance1, performance2) * 2
+        if max_team_diff == 0:
+            max_team_diff = 1  # Avoid division by zero
+        
+        # Normalize team difference to 0-1 range and invert (higher is better)
+        team_balance_score = 1 - (team_diff / max_team_diff)
+        
+        # Part 2: Calculate role matchup balance
+        role_matchup_score = self.calculate_role_matchup_score(team1, team2)
+        
+        # Combine scores with weights
+        # 70% weight on team balance, 30% on role matchups
+        total_fitness = (0.7 * team_balance_score) + (0.3 * role_matchup_score)
+        
+        # Scale to larger range for the genetic algorithm
+        return total_fitness * 100
+        
+    def calculate_role_matchup_score(self, team1, team2):
+        """
+        Calculate how well the roles match up between teams based on rank
+        Returns a score between 0-1 where 1 is perfect role matchups
+        """
+        standard_roles = ["top", "jungle", "mid", "bottom", "support"]
+        role_diffs = []
+        
+        # Map ranks to numeric values for comparison
+        tier_values = {
+            "challenger": 9,
+            "grandmaster": 8,
+            "master": 7,
+            "diamond": 6,
+            "emerald": 5,
+            "platinum": 4,
+            "gold": 3,
+            "silver": 2,
+            "bronze": 1,
+            "iron": 0,
+            "default": 0
+        }
+        
+        rank_values = {
+            "I": 4, 
+            "II": 3, 
+            "III": 2, 
+            "IV": 1, 
+            "V": 0
+        }
+        
+        # Find players assigned to each role on each team
+        for role in standard_roles:
+            player1 = next((p for p in team1 if p.get("assigned_role") == role), None)
+            player2 = next((p for p in team2 if p.get("assigned_role") == role), None)
+            
+            if player1 and player2:
+                # Calculate rank difference
+                tier1 = tier_values.get(player1.get("tier", "default").lower(), 0)
+                tier2 = tier_values.get(player2.get("tier", "default").lower(), 0)
+                
+                rank1 = rank_values.get(player1.get("rank", "V"), 0)
+                rank2 = rank_values.get(player2.get("rank", "V"), 0)
+                
+                # Calculate a combined rank value (tier * 5 + rank)
+                rank_value1 = tier1 * 5 + rank1
+                rank_value2 = tier2 * 5 + rank2
+                
+                # Calculate rank difference
+                rank_diff = abs(rank_value1 - rank_value2)
+                
+                # Add to list of differences
+                role_diffs.append(rank_diff)
+                
+        # If there are no valid matchups, return 0
+        if not role_diffs:
+            return 0
+            
+        # Calculate average rank difference across all roles
+        avg_diff = sum(role_diffs) / len(role_diffs)
+        
+        # Maximum possible rank difference (challenger I vs iron V)
+        max_diff = (tier_values["challenger"] * 5 + rank_values["I"]) - (tier_values["iron"] * 5 + rank_values["V"])
+        
+        # Normalize to 0-1 range and invert (so higher is better)
+        return 1 - (avg_diff / max_diff)
 
     def tournament_selection(self, population, fitnesses, tournament_size=3):
         """Select a chromosome using tournament selection"""
@@ -215,38 +420,91 @@ class GeneticMatchMaking:
             new_chromosome[i], new_chromosome[j] = new_chromosome[j], new_chromosome[i]
         return new_chromosome
 
-    def genetic_algorithm(self, players, population_size=50, generations=100, team_size=5):
-        """Main genetic algorithm loop"""
+    def genetic_algorithm(self, players, population_size=100, generations=200, team_size=5):
+        """
+        Main genetic algorithm loop with adaptive parameters for small player pools
+        
+        Args:
+            players: List of player dictionaries with performance metrics
+            population_size: Size of the population (increases for small player pools)
+            generations: Number of generations to run (increases for small player pools)
+            team_size: Number of players per team (typically 5 for League of Legends)
+            
+        Returns:
+            tuple: (best_chromosome, best_fitness)
+        """
         if not players or len(players) < team_size * 2:
             logger.error(f"Not enough players for matchmaking. Need {team_size * 2}, have {len(players)}")
             return None, float('-inf')
             
         n = len(players)
         base = list(range(n))
+        
+        # For small player pools, use larger populations and more generations to find optimal solutions
+        if n <= 20:
+            population_size = max(population_size, 150)  # Larger population
+            generations = max(generations, 300)          # More generations
+            
         # Generate initial population: random permutations of player indices
         population = [random.sample(base, n) for _ in range(population_size)]
         best_chromosome = None
         best_fitness = float('-inf')
         
+        # Track generations without improvement for early stopping
+        no_improvement_count = 0
+        
         for gen in range(generations):
             fitnesses = [self.calculate_fitness(chrom, players, team_size) for chrom in population]
-            # Update best solution found
-            for chrom, fit in zip(population, fitnesses):
-                if fit > best_fitness:
-                    best_fitness = fit
-                    best_chromosome = chrom[:]
             
-            # Create new population
-            new_population = []
-            for _ in range(population_size):
+            # Find best in current generation
+            current_gen_best_idx = max(range(len(fitnesses)), key=fitnesses.__getitem__)
+            current_gen_best_fit = fitnesses[current_gen_best_idx]
+            current_gen_best_chrom = population[current_gen_best_idx][:]
+            
+            # Update best solution found overall
+            if current_gen_best_fit > best_fitness:
+                best_fitness = current_gen_best_fit
+                best_chromosome = current_gen_best_chrom
+                no_improvement_count = 0
+            else:
+                no_improvement_count += 1
+            
+            # Early stopping if no improvement for a while
+            if no_improvement_count >= 50:
+                logger.info(f"Early stopping at generation {gen} - no improvement for 50 generations")
+                break
+                
+            # Elitism: Keep best solution in new population
+            new_population = [best_chromosome[:]]
+            
+            # Create new population with tournament selection, crossover, and mutation
+            while len(new_population) < population_size:
+                # Tournament selection for parents
                 parent1 = self.tournament_selection(population, fitnesses)
                 parent2 = self.tournament_selection(population, fitnesses)
+                
+                # Crossover to create child
                 child = self.order_crossover(parent1, parent2)
-                child = self.swap_mutation(child)
+                
+                # Mutation with adaptive rate (higher for small player pools)
+                mutation_rate = 0.1
+                if n <= 15:
+                    mutation_rate = 0.15  # Increase mutation rate for diversity
+                
+                child = self.swap_mutation(child, mutation_rate)
+                
+                # Add to new population
                 new_population.append(child)
             
+            # Replace old population
             population = new_population
-            logger.info(f"Generation {gen}: Best Fitness = {best_fitness}")
+            
+            # Log progress periodically
+            if gen % 10 == 0 or gen == generations - 1:
+                logger.info(f"Generation {gen}/{generations}: Best Fitness = {best_fitness:.2f}")
+            
+        # Final role assignments for best solution
+        self.decode_chromosome(best_chromosome, players, team_size)
             
         return best_chromosome, best_fitness
 
