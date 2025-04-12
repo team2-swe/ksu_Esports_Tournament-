@@ -42,13 +42,12 @@ async def main():
         for cmd_file in settings.controller_dir.glob("*.py"):
             if cmd_file.name != "__init__.py" and cmd_file.name != "signup_shared_logic.py" and cmd_file.name != "match_making.py" and cmd_file.name != "openAi_teamup.py" and cmd_file.name != "tournamentBracket.py":
                 try:
-                    # await sys_client.load_extension(f"controller.{cmd_file.name[:-3]}")
                     await sys_client.load_extension(f"controller.{cmd_file.stem}")
                 except errors.ExtensionAlreadyLoaded:
                     logger.info(f"{cmd_file.stem} command is already loaded")
                 except Exception as ex:
                     logger.info(f"Error loading {cmd_file.stem} command: {ex}")
-        
+
         
         guild = sys_client.get_guild(settings.GUILD_ID)
 

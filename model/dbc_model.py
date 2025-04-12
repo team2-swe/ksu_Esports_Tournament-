@@ -35,7 +35,7 @@ class Player(Tournament_DB):
             player_id bigint PRIMARY KEY,
             user_name text,
             game_name text,
-            tag_id text text not null,
+            tag_id text not null,
             isAdmin integer not null default 0,
             last_modified text default (datetime('now'))
         )
@@ -394,9 +394,12 @@ class TeamList(Tournament_DB):
             CREATE TABLE IF NOT EXISTS team_list (
             team_id integer primary key autoincrement,
             teamName text unique,
+            player_id bigint,
+            mvp_votes bigint default 0,
             win integer default 0,
             loss integer default 0,
-            pool_id text
+            pool_id text,
+            FOREIGN KEY (player_id) REFERENCES player (player_id) ON DELETE CASCADE
         )
         """
         self.cursor.execute(teamlist_table_query)
