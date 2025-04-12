@@ -24,7 +24,7 @@ class Tasks_Collection(commands.Cog):
         if results is not None:
             for row in results:
                 player_id = row[0]
-                player_tier = row[1].strip()().lower()
+                player_tier = row[1].strip().lower()
                 player_game_played = row[2]
                 player_wr = row[3]
                 #if the player wins is greater than 10 and wr is greater than 62%
