@@ -223,11 +223,15 @@ class MatchmakingController(commands.Cog):
 
                 # Record volunteers in database with "volunteer" status
                 session_id = f"volunteer_session_{int(asyncio.get_event_loop().time())}"
+                # Get the next match ID for the volunteer session
+                from model.dbc_model import Matches
+                matches_db = Matches(db_name=settings.DATABASE_NAME)
+                volunteer_match_num = matches_db.get_next_match_id()
                 for player in volunteers:
                     user_id = player.get('user_id')
                     if user_id:
-                        query = "INSERT INTO Matches(user_id, teamUp, teamId) VALUES(?, ?, ?)"
-                        db.cursor.execute(query, (user_id, "volunteer", session_id))
+                        query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num) VALUES(?, ?, ?, ?)"
+                        db.cursor.execute(query, (user_id, "volunteer", session_id, volunteer_match_num))
 
                 db.connection.commit()
                 db.close_db()
@@ -473,14 +477,14 @@ class MatchmakingController(commands.Cog):
                     for player in team1:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId) VALUES(?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "team1", match_id))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num) VALUES(?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "team1", match_id, match_num))
 
                     for player in team2:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId) VALUES(?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "team2", match_id))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num) VALUES(?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "team2", match_id, match_num))
 
                     # Calculate team metrics
                     team1_perf = matchmaker.team_performance(team1)
@@ -635,11 +639,15 @@ class MatchmakingController(commands.Cog):
                 # Record participation points for excluded players
                 if participation_players:
                     participation_id = f"participation_{int(asyncio.get_event_loop().time())}"
+                    # Get the next match ID for the participation session
+                    from model.dbc_model import Matches
+                    matches_db = Matches(db_name=settings.DATABASE_NAME)
+                    participation_match_num = matches_db.get_next_match_id()
                     for player in participation_players:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId) VALUES(?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "participation", participation_id))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num) VALUES(?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "participation", participation_id, participation_match_num))
 
                 # Commit all changes to database
                 db.connection.commit()

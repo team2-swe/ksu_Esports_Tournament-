@@ -8,8 +8,9 @@ from model import dbc_model
 
 logger = settings.logging.getLogger("discord")
 
-class RegisterModal(Modal, title="Registeration"):
-    def __init__(self, timeout : int = 550):
+
+class RegisterModal(Modal, title="Registration"):
+    def __init__(self, timeout: int = 550):
         super().__init__()
         self.timeout = timeout
         self.viewStart_time = time.time()
@@ -18,7 +19,7 @@ class RegisterModal(Modal, title="Registeration"):
             label="game name:",
             max_length=500,
             required=True,
-            placeholder="game you would like to play"
+            placeholder="Game Name"
         )
         self.add_item(self.game_name)
 
@@ -26,7 +27,7 @@ class RegisterModal(Modal, title="Registeration"):
             style=discord.TextStyle.short,
             label="your tag id",
             required=True,
-            placeholder="your tag id for the game"
+            placeholder="Tag ID"
         )
         self.add_item(self.Tag_id)
 
@@ -40,59 +41,62 @@ class RegisterModal(Modal, title="Registeration"):
         logger.info(f"game detail {self.game_name.value} and user id is {self.Tag_id.value}")
         try:
             db = dbc_model.Tournament_DB()
-            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
+            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(),
+                                      tagid=self.Tag_id.value.strip())
             db.close_db()
             embed = discord.Embed(title="Checkin summury",
-                                description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
-                                color=discord.Color.yellow())
+                                  description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
+                                  color=discord.Color.yellow())
             embed.set_author(name=self.user)
             await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed)
 
         except Exception as ex:
             print(f"it is faild on {ex}")
 
-    async def on_error(self, interaction: discord.Interaction, error : Exception):
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
         traceback.print_tb(error.__traceback__)
-        return await super().on_submit(interaction) 
+        return await super().on_submit(interaction)
+
 
 class PreferenceSelect(discord.ui.Select):
     def __init__(self):
-        options = [ 
-                   discord.SelectOption(label="Top Lane", value="top"),
-                   discord.SelectOption(label="Jungle", value="jungle"),
-                   discord.SelectOption(label="Mid Lane", value="mid"),
-                   discord.SelectOption(label="Bottom", value="bottom"),
-                   discord.SelectOption(label="Support", value="support"),
+        options = [
+            discord.SelectOption(label="Top Lane", value="top"),
+            discord.SelectOption(label="Jungle", value="jungle"),
+            discord.SelectOption(label="Mid Lane", value="mid"),
+            discord.SelectOption(label="Bottom", value="bottom"),
+            discord.SelectOption(label="Support", value="support"),
         ]
         super().__init__(options=options, placeholder="Select your preference in order (max 3)", max_values=3)
 
-    async def callback(self, interaction:discord.Interaction):
+    async def callback(self, interaction: discord.Interaction):
         await self.view.selected_preferences(interaction, self.values)
 
-class PlayerPrefRole(discord.ui.View):
-    selected_pref = None 
 
-    def __init__(self, *, timeout = 540):
+class PlayerPrefRole(discord.ui.View):
+    selected_pref = None
+
+    def __init__(self, *, timeout=540):
         super().__init__(timeout=timeout)
         self.timeout = timeout
         self.message = None
-        
+
         # Add the role preferences dropdown directly without needing an initial selection
         self.add_item(PreferenceSelect())
 
-    async def selected_preferences(self, interaction : discord.Interaction, choices):
+    async def selected_preferences(self, interaction: discord.Interaction, choices):
         try:
             # Acknowledge the interaction first
             await interaction.response.defer()
-            
+
             # Save the preferences
-            self.selected_pref = choices 
-            
+            self.selected_pref = choices
+
             # Update the database
             db = dbc_model.Tournament_DB()
             dbc_model.Game.update_pref(db, interaction, self.selected_pref)
             db.close_db()
-            
+
             # Create a response embed
             roles_list = ", ".join([role.capitalize() for role in choices])
             embed = discord.Embed(
@@ -100,10 +104,10 @@ class PlayerPrefRole(discord.ui.View):
                 description=f"Your role preferences have been saved: {roles_list}",
                 color=discord.Color.green()
             )
-            
+
             # Send confirmation as ephemeral message (only visible to the user)
             await interaction.followup.send(embed=embed, ephemeral=True)
-            
+
             # Delete the original message to clean up the chat
             try:
                 # Try to delete using the stored message reference first
@@ -114,17 +118,17 @@ class PlayerPrefRole(discord.ui.View):
                     await interaction.message.delete()
             except Exception as ex:
                 logger.error(f"Error deleting message: {ex}")
-            
+
             self.stop()
         except discord.errors.InteractionResponded:
             # If the interaction was already responded to, just continue with the logic
             logger.info("Interaction was already responded to, continuing with preference update")
-            
+
             # Update the database
             db = dbc_model.Tournament_DB()
             dbc_model.Game.update_pref(db, interaction, self.selected_pref)
             db.close_db()
-            
+
             # Try to delete the message
             try:
                 if self.message:
@@ -133,13 +137,14 @@ class PlayerPrefRole(discord.ui.View):
                     await interaction.message.delete()
             except Exception as ex:
                 logger.error(f"Error deleting message in exception handler: {ex}")
-                
+
             self.stop()
 
     # selected_role method removed - we only need role preferences now
 
-class Checkin_RegisterModal(Modal, title="Registeration"):
-    def __init__(self, timeout : int = 550):
+
+class Checkin_RegisterModal(Modal, title="Registration"):
+    def __init__(self, timeout: int = 550):
         super().__init__()
         self.timeout = timeout
         self.viewStart_time = time.time()
@@ -148,7 +153,7 @@ class Checkin_RegisterModal(Modal, title="Registeration"):
             label="game name:",
             max_length=500,
             required=True,
-            placeholder="game you would like to play"
+            placeholder="Game Name"
         )
         self.add_item(self.game_name)
 
@@ -156,7 +161,7 @@ class Checkin_RegisterModal(Modal, title="Registeration"):
             style=discord.TextStyle.short,
             label="your tag id",
             required=True,
-            placeholder="your tag id for the game"
+            placeholder="Tag ID"
         )
         self.add_item(self.Tag_id)
 
@@ -171,11 +176,12 @@ class Checkin_RegisterModal(Modal, title="Registeration"):
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
         try:
             db = dbc_model.Tournament_DB()
-            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(), tagid=self.Tag_id.value.strip())
+            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(),
+                                      tagid=self.Tag_id.value.strip())
             db.close_db()
             embed = discord.Embed(title="Checkin summury",
-                                description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
-                                color=discord.Color.yellow())
+                                  description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
+                                  color=discord.Color.yellow())
             embed.set_author(name=self.user)
 
             await interaction.response.send_message(f"{self.user}, you have completed registration", ephemeral=True)

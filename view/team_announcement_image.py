@@ -173,9 +173,9 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
     # Check for fonts, but don't raise an exception if we can't find them
     have_custom_fonts = download_fonts()
     
-    # Image dimensions - make image larger to accommodate bigger fonts
-    width = 3840  # 4K width (2x previous)
-    height = 2160  # 4K height (2x previous)
+    # Image dimensions - use standard 1080p size
+    width = 1920
+    height = 1080
     
     # Create the base image with a gradient background
     img = create_gradient_background(width, height, BACKGROUND_TOP, BACKGROUND_BOTTOM)
@@ -188,19 +188,19 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
         draw.line([(start_x, 0), (0, start_x)], fill=(*DARK_GRAY, 40), width=2)  # Top left diagonal lines
         draw.line([(width - start_x, 0), (width, start_x)], fill=(*DARK_GRAY, 40), width=2)  # Top right diagonal lines
     
-    # Create header bar - increased height
-    header_height = 240  # 2x previous
+    # Create header bar
+    header_height = 120
     header_overlay = Image.new('RGBA', (width, header_height), (*BLACK, 180))
     img.paste(header_overlay, (0, 0), header_overlay)
     
-    # Create footer bar - increased height
-    footer_height = 160  # 2x previous
+    # Create footer bar
+    footer_height = 80
     footer_overlay = Image.new('RGBA', (width, footer_height), (*BLACK, 180))
     img.paste(footer_overlay, (0, height - footer_height), footer_overlay)
     
-    # Create center VS panel - increased size
-    vs_panel_width = 600  # 2x previous
-    vs_panel_height = 600  # 2x previous
+    # Create center VS panel
+    vs_panel_width = 300
+    vs_panel_height = 300
     vs_panel = Image.new('RGBA', (vs_panel_width, vs_panel_height), (*BLACK, 120))
     img.paste(vs_panel, (width//2 - vs_panel_width//2, height//2 - vs_panel_height//2), vs_panel)
     
@@ -247,13 +247,13 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
         # Use system fonts or custom fonts if available
         if have_custom_fonts and (isinstance(DEFAULT_BOLD_FONT, str) and isinstance(DEFAULT_REGULAR_FONT, str) and 
             os.path.exists(DEFAULT_BOLD_FONT) and os.path.exists(DEFAULT_REGULAR_FONT)):
-            # All font sizes increased by 4x
-            title_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 288)      # Was 72
-            header_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 192)     # Was 48
-            player_name_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 152) # Was 38
-            detail_font = ImageFont.truetype(str(DEFAULT_REGULAR_FONT), 128)   # Was 32
-            role_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 128)        # Was 32
-            footer_font = ImageFont.truetype(str(DEFAULT_REGULAR_FONT), 96)    # Was 24
+            # Font sizes appropriate for 1080p resolution
+            title_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 72)
+            header_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 48)
+            player_name_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 42)
+            detail_font = ImageFont.truetype(str(DEFAULT_REGULAR_FONT), 36)
+            role_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 36)
+            footer_font = ImageFont.truetype(str(DEFAULT_REGULAR_FONT), 30)
         else:
             # Fallback to default PIL font - can't resize these much, so just using as-is
             title_font = ImageFont.load_default()
@@ -272,31 +272,31 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
         role_font = ImageFont.load_default()
         footer_font = ImageFont.load_default()
     
-    # Draw title - adjusted position for larger text
+    # Draw title
     match_id_clean = match_id.replace('match_', '')
     title = f"MATCH #{match_id_clean}"
     # Draw text shadow
-    draw.text((width // 2 + 4, 284), title, fill=BLACK, font=title_font, anchor="mm")
+    draw.text((width // 2 + 2, 152), title, fill=BLACK, font=title_font, anchor="mm")
     # Draw actual text
-    draw.text((width // 2, 280), title, fill=GOLD, font=title_font, anchor="mm")
+    draw.text((width // 2, 150), title, fill=GOLD, font=title_font, anchor="mm")
     
-    # Draw team headers with fancy styling - adjusted positions
+    # Draw team headers with fancy styling
     team1_x = width // 4
     team2_x = width - (width // 4)
     
     # Team 1 Header
     team1_text = "TEAM BLUE"
     # Text shadow
-    draw.text((team1_x + 4, 404), team1_text, fill=BLACK, font=header_font, anchor="mm")
+    draw.text((team1_x + 2, 202), team1_text, fill=BLACK, font=header_font, anchor="mm")
     # Main text
-    draw.text((team1_x, 400), team1_text, fill=TEAM1_COLOR, font=header_font, anchor="mm")
+    draw.text((team1_x, 200), team1_text, fill=TEAM1_COLOR, font=header_font, anchor="mm")
     
     # Team 2 Header
     team2_text = "TEAM RED"
     # Text shadow
-    draw.text((team2_x + 4, 404), team2_text, fill=BLACK, font=header_font, anchor="mm")
+    draw.text((team2_x + 2, 202), team2_text, fill=BLACK, font=header_font, anchor="mm")
     # Main text
-    draw.text((team2_x, 400), team2_text, fill=TEAM2_COLOR, font=header_font, anchor="mm")
+    draw.text((team2_x, 200), team2_text, fill=TEAM2_COLOR, font=header_font, anchor="mm")
     
     # Draw VS in the middle with styling - with larger glow
     vs_text = "VS"
@@ -323,30 +323,30 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
         role = player.get('assigned_role', 'tbd').lower()
         team2_by_role[role] = player
     
-    # Draw player matchups by role with enhanced styling - adjusted for 4K resolution
+    # Draw player matchups by role with enhanced styling
     for i, role in enumerate(standard_roles):
-        y_position = 540 + (i * 280)  # Doubled spacing
+        y_position = 280 + (i * 140)  # Spacing appropriate for 1080p
         
         # Create a semi-transparent row background for alternating rows
         if i % 2 == 0:
-            row_overlay = Image.new('RGBA', (width, 160), (*BLACK, 40))  # Doubled height
-            img.paste(row_overlay, (0, y_position - 80), row_overlay)
+            row_overlay = Image.new('RGBA', (width, 80), (*BLACK, 40))
+            img.paste(row_overlay, (0, y_position - 40), row_overlay)
         
         # Draw connecting line for this matchup
-        draw.line([(team1_x + 340, y_position), (team2_x - 340, y_position)], 
-                  fill=GRAY, width=2)  # Doubled distance from center, increased width
+        draw.line([(team1_x + 170, y_position), (team2_x - 170, y_position)], 
+                  fill=GRAY, width=2)
         
         # Draw role indicator
         role_color = ROLE_COLORS.get(role, GRAY)
-        # Draw role badge - circle with icon - larger circle
-        circle_radius = 60  # Doubled radius
+        # Draw role badge - circle with icon
+        circle_radius = 30
         circle_x = width // 2
         circle_y = y_position
         
         # Draw circle background
         draw.ellipse([(circle_x - circle_radius, circle_y - circle_radius), 
                       (circle_x + circle_radius, circle_y + circle_radius)], 
-                    fill=role_color, outline=WHITE, width=4)  # Increased border width
+                    fill=role_color, outline=WHITE, width=2)
         
         # Draw role text
         role_display = role[0].upper()  # Just first letter
@@ -355,7 +355,7 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
         
         # Draw small role name below icon
         role_name = role.upper()
-        draw.text((circle_x, circle_y + circle_radius + 30), role_name,  # Doubled offset
+        draw.text((circle_x, circle_y + circle_radius + 15), role_name,
                   fill=LIGHT_GRAY, font=footer_font, anchor="mm")
         
         # Draw team 1 player with enhanced styling
@@ -365,29 +365,29 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
             tier = team1_player.get('tier', 'unknown').capitalize()
             rank = team1_player.get('rank', '')
             
-            # Draw player "card" background - larger card
-            card_width = 600  # Doubled width
-            card_height = 160  # Doubled height
+            # Draw player "card" background
+            card_width = 300
+            card_height = 80
             card_x = team1_x - (card_width // 2)
             card_y = y_position - (card_height // 2)
             player_card = Image.new('RGBA', (card_width, card_height), (*TEAM1_COLOR, 40))
             img.paste(player_card, (card_x, card_y), player_card)
             
-            # Draw card border - thicker border
-            for b in range(4):  # Doubled border width
+            # Draw card border
+            for b in range(2):
                 draw.rectangle([(card_x + b, card_y + b), 
                                (card_x + card_width - b, card_y + card_height - b)], 
                               outline=(*TEAM1_COLOR, 100), width=1)
             
-            # Text shadow - larger offset
-            draw.text((team1_x + 2, y_position - 30 + 2), player_name,  # Doubled offset
+            # Text shadow
+            draw.text((team1_x + 1, y_position - 15 + 1), player_name,
                       fill=BLACK, font=player_name_font, anchor="mm")
             # Player name with team color
-            draw.text((team1_x, y_position - 30), player_name,  # Doubled offset
+            draw.text((team1_x, y_position - 15), player_name,
                       fill=TEAM1_COLOR, font=player_name_font, anchor="mm")
             
             # Player rank with white
-            draw.text((team1_x, y_position + 40), f"{tier} {rank}",  # Doubled offset
+            draw.text((team1_x, y_position + 20), f"{tier} {rank}",
                       fill=WHITE, font=detail_font, anchor="mm")
         
         # Draw team 2 player with enhanced styling
@@ -397,45 +397,45 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
             tier = team2_player.get('tier', 'unknown').capitalize()
             rank = team2_player.get('rank', '')
             
-            # Draw player "card" background - larger card
-            card_width = 600  # Doubled width
-            card_height = 160  # Doubled height
+            # Draw player "card" background
+            card_width = 300
+            card_height = 80
             card_x = team2_x - (card_width // 2)
             card_y = y_position - (card_height // 2)
             player_card = Image.new('RGBA', (card_width, card_height), (*TEAM2_COLOR, 40))
             img.paste(player_card, (card_x, card_y), player_card)
             
-            # Draw card border - thicker border
-            for b in range(4):  # Doubled border width
+            # Draw card border
+            for b in range(2):
                 draw.rectangle([(card_x + b, card_y + b), 
                                (card_x + card_width - b, card_y + card_height - b)], 
                               outline=(*TEAM2_COLOR, 100), width=1)
             
-            # Text shadow - larger offset
-            draw.text((team2_x + 2, y_position - 30 + 2), player_name,  # Doubled offset
+            # Text shadow
+            draw.text((team2_x + 1, y_position - 15 + 1), player_name,
                       fill=BLACK, font=player_name_font, anchor="mm")
             # Player name with team color
-            draw.text((team2_x, y_position - 30), player_name,  # Doubled offset
+            draw.text((team2_x, y_position - 15), player_name,
                       fill=TEAM2_COLOR, font=player_name_font, anchor="mm")
             
             # Player rank with white
-            draw.text((team2_x, y_position + 40), f"{tier} {rank}",  # Doubled offset
+            draw.text((team2_x, y_position + 20), f"{tier} {rank}",
                       fill=WHITE, font=detail_font, anchor="mm")
     
-    # Draw tournament credit in footer - adjusted position
+    # Draw tournament credit in footer
     footer_text = "KSU ESPORTS TOURNAMENT"
-    draw.text((width // 2, height - 60), footer_text,  # Doubled offset
+    draw.text((width // 2, height - 30), footer_text,
               fill=GOLD, font=footer_font, anchor="mm")
     
     # Add timestamp
     from datetime import datetime
     timestamp = datetime.now().strftime("%Y-%m-%d")
-    draw.text((width - 40, height - 40), timestamp,  # Doubled offset
+    draw.text((width - 20, height - 20), timestamp,
               fill=GRAY, font=footer_font, anchor="rb")
     
     # Add optional watermark
     watermark_text = "Generated by KSU Esports Bot"
-    draw.text((40, height - 40), watermark_text,  # Doubled offset
+    draw.text((20, height - 20), watermark_text,
               fill=GRAY, font=footer_font, anchor="lb")
     
     # Save the image with better quality

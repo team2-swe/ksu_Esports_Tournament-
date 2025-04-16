@@ -92,7 +92,7 @@ class Player(Tournament_DB):
             else:
                 logger.error(f"Registration ahs failed because of Non user id")
         except Exception as ex:
-            logger.error(f"Registeration has failed with error {ex}")
+            logger.error(f"Registration has failed with error {ex}")
 
     def fetch(self, interaction):
         query = "select * from player where user_id = ?"
@@ -394,10 +394,11 @@ class Game(Tournament_DB):
 class Matches(Tournament_DB):
     
     def createTable(self):
-
+        # First, create a table with a custom field for match_num that we control
         game_table_query = """
             CREATE TABLE IF NOT EXISTS Matches (
             match_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            match_num INTEGER NOT NULL,  -- This field will store our sequential match numbers
             user_id bigint,
             game_name text,
             win text,
@@ -412,13 +413,30 @@ class Matches(Tournament_DB):
         self.cursor.execute(game_table_query)
         self.connection.commit()
         
+        # Create a sequence counter table if it doesn't exist
+        counter_table_query = """
+            CREATE TABLE IF NOT EXISTS Counters (
+            name TEXT PRIMARY KEY,
+            value INTEGER NOT NULL
+        )
+        """
+        self.cursor.execute(counter_table_query)
+        
+        # Initialize match counter if not exists
+        self.cursor.execute("INSERT OR IGNORE INTO Counters (name, value) VALUES ('match_counter', 0)")
+        self.connection.commit()
+        
     def get_next_match_id(self):
-        """Get the next available match ID"""
+        """Get the next sequential match ID (ignoring SQLite's autoincrement behavior)"""
         try:
-            self.cursor.execute("SELECT MAX(match_id) FROM Matches")
+            # Get and increment our custom counter
+            self.cursor.execute("UPDATE Counters SET value = value + 1 WHERE name = 'match_counter'")
+            self.cursor.execute("SELECT value FROM Counters WHERE name = 'match_counter'")
             result = self.cursor.fetchone()
-            if result and result[0] is not None:
-                return result[0] + 1
+            self.connection.commit()
+            
+            if result and result[0]:
+                return result[0]
             return 1
         except Exception as ex:
             logger.error(f"get_next_match_id failed with error {ex}")

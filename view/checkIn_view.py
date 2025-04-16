@@ -70,16 +70,13 @@ class CheckinView(discord.ui.View):
 
                 embed = discord.Embed(
                     color=discord.Colour.dark_teal(),
-                    description="this is our server to play game .........................\
-                    .................................................................\
-                        ........................................................\
-                            .................................",
-                    title=f"welcome to {interaction.guild} server"
+                    description="Please Sign up to participate in the tournament! ",
+                    title=f"Welcome to the Kennesaw eSports Bot!"
                 )
                 # embed.set_image(url=f"{ksu_logo_path}")
                 embed.set_thumbnail(url=f"attachment://resized_logo{logo_extention}")
                 
-                message = await dm_to_user.send(f"inprogress checkin.... please register here", embed=embed, file=discord.File(resize_logo, filename=f"resized_logo{logo_extention}"), view=signUp_view)
+                message = await dm_to_user.send(f"Checkin in progress.... please register here", embed=embed, file=discord.File(resize_logo, filename=f"resized_logo{logo_extention}"), view=signUp_view)
                 signUp_view.message = message
                 signUp_view.isFromCheckin = True
 
@@ -87,7 +84,7 @@ class CheckinView(discord.ui.View):
                 await asyncio.sleep(self.timeout)
                 await message.delete()
 
-                await interaction.response.send_message(f"your checkin inprogress..., Check your DMs for next step", ephemeral=True)
+                await interaction.response.send_message(f"Checkin in progress.., Check your DMs for next step", ephemeral=True)
 
 
             else:
