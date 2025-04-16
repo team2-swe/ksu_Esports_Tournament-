@@ -25,6 +25,9 @@ START_API_TASK = os.getenv("START_API_TASK")
 OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 PROMPT = os.getenv("prompt")
 
+# Tier list for player tier dropdown
+TIER_LIST = str(['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Grandmaster', 'Challenger'])
+
 # pathlib.Path(__file__) this is the current file where the code is present
 File_Dir = pathlib.Path(__file__).parent # This will give the current directory path where the file is present
 Base_Dir = File_Dir.parent

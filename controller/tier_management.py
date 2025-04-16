@@ -1,9 +1,11 @@
 import discord
 import asyncio
+import re
 from discord import app_commands
 from discord.ext import commands
 from config import settings
-from model.dbc_model import Tournament_DB, Game
+from model.dbc_model import Tournament_DB, Game, Player_game_info
+from view.tier_view import TierView
 
 logger = settings.logging.getLogger("discord")
 
@@ -291,6 +293,42 @@ class TierManagement(commands.Cog):
             await interaction.response.send_message("Sorry, you don't have required permission to use this command",
                                                   ephemeral=True)
 
+
+    @app_commands.command(name="updatetier", description="Overwrite player tier using dropdown")
+    async def tier_update(self, interaction: discord.Interaction, player_id: str):
+        if interaction.user.guild_permissions.administrator:
+            id = await self.passingPlayerId(player_id.strip())
+            if id is None:
+                await interaction.response.send_message(f"Please provide a valid player id")
+                return
+            
+            db = Tournament_DB()
+            result = Player_game_info.fetch_by_id(db, id)
+            db.close_db()
+            if result is not None:
+                player_tier = result[0][0]
+                
+                tierDropdownView = TierView(id)
+                await interaction.response.send_message(f"Player's current tier is {player_tier}. Select the new tier from dropdown", view=tierDropdownView)
+            else:
+                await interaction.response.send_message(f"Player not found, please check the user id")
+        else:
+            await interaction.response.send_message(f"Sorry you don't have access to use this command",
+                                                    ephemeral=True)
+
+    async def passingPlayerId(self, param):
+        if param is not None:
+            if isinstance(param, int):
+                return param
+            elif isinstance(param, str):
+                if 1 <= len(param) <= 32:
+                    if re.match("^[a-z0-9-_]+$", param):
+                        return int(param)
+                    return None
+                return None
+            else:
+                return None
+        return None
 
 async def setup(bot):
     await bot.add_cog(TierManagement(bot))

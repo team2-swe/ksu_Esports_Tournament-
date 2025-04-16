@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from config import settings
 from model import dbc_model
-from model.button_state import ButtonState, first_login_users
 from view.signUp_view import SignUpView
 from common import common_scripts
 
@@ -31,11 +30,13 @@ class EventsController(commands.Cog):
 
                 embed = discord.Embed(
                     color=discord.Colour.dark_teal(),
-                    description="Please Register Here .........................\
-                    .................................................................\
-                        ........................................................\
-                            .................................",
-                    title=f"Welcome To KSU eSports Server"
+                    description="Thank you for joining the server, \
+                    please register your player profile below \
+                    so we can provide the best gaming experience possible \
+                    \
+                    \
+                    Have any questions? Contact an Admin for more details!",
+                    title=f"Welcome to {member.guild.name} server"
                 )
                 # embed.set_image(url=f"{ksu_logo_path}")
                 embed.set_thumbnail(url=f"attachment://resized_logo{logo_extention}")

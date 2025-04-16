@@ -7,6 +7,7 @@ from discord.ext import commands
 from config import settings
 from model.dbc_model import Tournament_DB, Player, Game
 from controller.api import Api_Collection
+from model.player import PlayerModel
 
 logger = settings.logging.getLogger("discord")
 
@@ -587,6 +588,26 @@ class PlayerManagement(commands.Cog):
             await interaction.response.send_message("Sorry, you don't have required permission to use this command",
                                                  ephemeral=True)
 
+
+    @app_commands.command(name="toxicity", description="Add 1 point to the player's toxicity level")
+    @app_commands.describe(player="The player to add toxicity to")
+    async def toxicity(self, interaction: discord.Interaction, player: str):
+        # Check if the user is an admin and end if not
+        if interaction.user.guild_permissions.administrator:
+            try:
+                # Call the method to update the database and check if it returns a success
+                found_user = PlayerModel.update_toxicity(interaction, player.lower())
+                if found_user:
+                    await interaction.response.send_message(f"{player}'s toxicity point has been updated.", ephemeral=True)
+                else:
+                    await interaction.response.send_message(f"{player} - this username could not be found.", ephemeral=True)
+
+            except Exception as e:
+                logger.error(f'An error occurred updating toxicity: {e}')
+                await interaction.response.send_message(f"Error updating toxicity: {str(e)}", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ This command is only for administrators.", ephemeral=True)
+            return
 
 async def setup(bot):
     await bot.add_cog(PlayerManagement(bot))
