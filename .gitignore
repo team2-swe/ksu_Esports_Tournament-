@@ -13,3 +13,14 @@ tournament_dbc
 match_making/*
 __pycache__/
 /.idea/modules.xml
+/.idea/dataSources.xml
+/docs/KSU_Esports_Tournament.png
+/.idea/ksu_Esports_Tournament-.iml
+/.idea/misc.xml
+/docs/plantuml.txt
+/docs/procedural_description.txt
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/test.md
+/docs/ui_ux_design.md
+/.idea/vcs.xml
