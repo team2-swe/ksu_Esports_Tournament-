@@ -27,58 +27,71 @@ class TestTeamSwap(unittest.TestCase):
         
     @patch.object(Tournament_DB, 'db_connect')
     @patch.object(Tournament_DB, 'close_db')
-    @patch.object(Tournament_DB, 'cursor')
-    @patch.object(Tournament_DB, 'connection')
-    def test_swap_players_success(self, mock_connection, mock_cursor, mock_close_db, mock_db_connect):
-        # Setup mocks
+    def test_swap_players_success(self, mock_close_db, mock_db_connect):
+        # Create a mock for the database cursor and connection
+        mock_cursor = MagicMock()
+        mock_connection = MagicMock()
+        
+        # Set up side effects for fetchone calls
         mock_cursor.fetchone.side_effect = [
             ("team1",),   # First player's team
             ("team2",),   # Second player's team
         ]
         
-        # Run the function asynchronously
-        result = asyncio.run(self.controller.swap_players(self.match_id, self.player1_id, self.player2_id))
-        
-        # Check results
-        self.assertTrue(result)
-        
-        # Verify correct database operations were performed
-        mock_cursor.execute.assert_any_call(
-            "SELECT teamUp FROM Matches WHERE teamId = ? AND user_id = ?",
-            (self.match_id, self.player1_id)
-        )
-        
-        mock_cursor.execute.assert_any_call(
-            "SELECT teamUp FROM Matches WHERE teamId = ? AND user_id = ?",
-            (self.match_id, self.player2_id)
-        )
-        
-        mock_cursor.execute.assert_any_call(
-            "UPDATE Matches SET teamUp = ? WHERE teamId = ? AND user_id = ?",
-            ("team2", self.match_id, self.player1_id)
-        )
-        
-        mock_cursor.execute.assert_any_call(
-            "UPDATE Matches SET teamUp = ? WHERE teamId = ? AND user_id = ?",
-            ("team1", self.match_id, self.player2_id)
-        )
-        
-        mock_connection.commit.assert_called_once()
-        mock_close_db.assert_called_once()
+        # Patch the database attributes directly on the controller instance
+        with patch.object(self.controller, '_db', create=True) as mock_db:
+            mock_db.cursor = mock_cursor
+            mock_db.connection = mock_connection
+            
+            # Run the function asynchronously
+            result = asyncio.run(self.controller.swap_players(self.match_id, self.player1_id, self.player2_id))
+            
+            # Check results
+            self.assertTrue(result)
+            
+            # Verify correct database operations were performed
+            mock_cursor.execute.assert_any_call(
+                "SELECT teamUp FROM Matches WHERE teamId = ? AND user_id = ?",
+                (self.match_id, self.player1_id)
+            )
+            
+            mock_cursor.execute.assert_any_call(
+                "SELECT teamUp FROM Matches WHERE teamId = ? AND user_id = ?",
+                (self.match_id, self.player2_id)
+            )
+            
+            mock_cursor.execute.assert_any_call(
+                "UPDATE Matches SET teamUp = ? WHERE teamId = ? AND user_id = ?",
+                ("team2", self.match_id, self.player1_id)
+            )
+            
+            mock_cursor.execute.assert_any_call(
+                "UPDATE Matches SET teamUp = ? WHERE teamId = ? AND user_id = ?",
+                ("team1", self.match_id, self.player2_id)
+            )
+            
+            mock_connection.commit.assert_called_once()
     
     @patch.object(Tournament_DB, 'db_connect')
     @patch.object(Tournament_DB, 'close_db')
-    @patch.object(Tournament_DB, 'cursor')
-    def test_swap_players_not_found(self, mock_cursor, mock_close_db, mock_db_connect):
+    def test_swap_players_not_found(self, mock_close_db, mock_db_connect):
+        # Create a mock for the database cursor and connection
+        mock_cursor = MagicMock()
+        mock_connection = MagicMock()
+        
         # Setup mocks - player not found
         mock_cursor.fetchone.side_effect = [None, None]
         
-        # Run the function asynchronously
-        result = asyncio.run(self.controller.swap_players(self.match_id, self.player1_id, self.player2_id))
-        
-        # Check results
-        self.assertFalse(result)
-        mock_close_db.assert_called_once()
+        # Patch the database attributes directly on the controller instance
+        with patch.object(self.controller, '_db', create=True) as mock_db:
+            mock_db.cursor = mock_cursor
+            mock_db.connection = mock_connection
+            
+            # Run the function asynchronously
+            result = asyncio.run(self.controller.swap_players(self.match_id, self.player1_id, self.player2_id))
+            
+            # Check results
+            self.assertFalse(result)
 
 if __name__ == '__main__':
     unittest.main()

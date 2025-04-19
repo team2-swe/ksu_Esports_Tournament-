@@ -160,7 +160,11 @@ class TeamSwapController(commands.Cog):
         Returns:
             bool: True if successful, False otherwise
         """
-        db = Tournament_DB()
+        # Use _db if it exists (for testing), otherwise create a new connection
+        if hasattr(self, '_db'):
+            db = self._db
+        else:
+            db = Tournament_DB()
         
         try:
             # Get current team assignments
@@ -178,7 +182,8 @@ class TeamSwapController(commands.Cog):
             
             if not player1_team or not player2_team:
                 logger.error(f"Could not find both players in match {match_id}")
-                db.close_db()
+                if not hasattr(self, '_db'):  # Only close if we created it
+                    db.close_db()
                 return False
             
             logger.info(f"Swapping player {player1_id} from {player1_team[0]} with player {player2_id} from {player2_team[0]}")
@@ -195,14 +200,17 @@ class TeamSwapController(commands.Cog):
             )
             
             db.connection.commit()
-            db.close_db()
+            
+            if not hasattr(self, '_db'):  # Only close if we created it
+                db.close_db()
             
             logger.info(f"Successfully swapped players in match {match_id}")
             return True
             
         except Exception as ex:
             logger.error(f"Error swapping players: {ex}")
-            db.close_db()
+            if not hasattr(self, '_db'):  # Only close if we created it
+                db.close_db()
             return False
 
 async def setup(bot):

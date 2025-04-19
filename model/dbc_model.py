@@ -234,7 +234,6 @@ class Game(Tournament_DB):
         self.connection.commit()
 
     def update_pref(self, interaction, pref):
-        register_query = "insert into game(user_id, game_name, role) values(?, ?, ?)"
         pref = json.dumps(pref)
         try:
             uniq_user_id = interaction.user.id
@@ -249,7 +248,19 @@ class Game(Tournament_DB):
                 else:
                     game_name = player_data[0]
                 
-                self.cursor.execute(register_query, (uniq_user_id, game_name, pref))
+                # Check if record already exists
+                self.cursor.execute("SELECT COUNT(*) FROM game WHERE user_id = ?", (uniq_user_id,))
+                exists = self.cursor.fetchone()[0] > 0
+                
+                if exists:
+                    # Update existing record
+                    update_query = "UPDATE game SET role = ? WHERE user_id = ?"
+                    self.cursor.execute(update_query, (pref, uniq_user_id))
+                else:
+                    # Insert new record
+                    insert_query = "INSERT INTO game(user_id, game_name, role) VALUES(?, ?, ?)"
+                    self.cursor.execute(insert_query, (uniq_user_id, game_name, pref))
+                
                 self.connection.commit()
             else:
                 logger.error(f"update_pref has failed because of Non user id")
