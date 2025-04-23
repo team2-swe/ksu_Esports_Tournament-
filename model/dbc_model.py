@@ -559,6 +559,113 @@ class Matches(Tournament_DB):
             logger.info("Using default match ID: match_1")
             return 1
         
+class Player_game_info(Tournament_DB):
+    """
+    Class for managing player game information for export/import functionality
+    """
+    
+    @staticmethod
+    def createTable(db):
+        """Create the playerGameDetail table if it doesn't exist"""
+        player_game_detail_query = """
+            CREATE TABLE IF NOT EXISTS playerGameDetail (
+            player_id bigint PRIMARY KEY,
+            game_name text,
+            tag_id text,
+            tier text,
+            rank text,
+            role text,
+            wins integer,
+            losses integer,
+            manual_tier float,
+            wr float,
+            FOREIGN KEY (player_id) REFERENCES player (user_id) ON DELETE CASCADE
+        )
+        """
+        db.cursor.execute(player_game_detail_query)
+        db.connection.commit()
+    
+    @staticmethod
+    def exportToGoogleSheet(db):
+        """Export player data to Google Sheets format"""
+        try:
+            # Combine player and game data
+            db.cursor.execute("""
+                SELECT p.user_id as player_id, p.game_name, p.tag_id, g.tier, g.rank, g.role, 
+                       g.wins, g.losses, g.manual_tier, g.wr
+                FROM player p
+                LEFT JOIN (
+                    SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
+                    FROM game
+                    GROUP BY user_id
+                ) g ON p.user_id = g.user_id
+                ORDER BY p.game_name
+            """)
+            
+            # Create header row
+            header = ["player_id", "game_name", "tag_id", "tier", "rank", "role", 
+                      "wins", "losses", "manual_tier", "wr"]
+            
+            # Fetch all player data
+            players_data = db.cursor.fetchall()
+            
+            return header, players_data
+        except Exception as ex:
+            logger.error(f"Error exporting player data: {ex}")
+            return [], []
+    
+    @staticmethod
+    def metadata(db):
+        """Get metadata about the playerGameDetail table columns"""
+        try:
+            # First ensure the table exists
+            player_game_detail_query = """
+                CREATE TABLE IF NOT EXISTS playerGameDetail (
+                player_id bigint PRIMARY KEY,
+                game_name text,
+                tag_id text,
+                tier text,
+                rank text,
+                role text,
+                wins integer,
+                losses integer,
+                manual_tier float,
+                wr float,
+                FOREIGN KEY (player_id) REFERENCES player (user_id) ON DELETE CASCADE
+            )
+            """
+            db.cursor.execute(player_game_detail_query)
+            db.connection.commit()
+            
+            # Get column information
+            db.cursor.execute("PRAGMA table_info(playerGameDetail)")
+            return db.cursor.fetchall()
+        except Exception as ex:
+            logger.error(f"Error getting playerGameDetail metadata: {ex}")
+            return []
+    
+    @staticmethod
+    def isExistPlayerId(db, query, query_param):
+        """Check if a player ID exists in the playerGameDetail table"""
+        try:
+            db.cursor.execute(query, query_param)
+            result = db.cursor.fetchone()
+            return result[0] > 0 if result else False
+        except Exception as ex:
+            logger.error(f"Error checking player existence: {ex}")
+            return False
+    
+    @staticmethod
+    def importToDb(db, query, values):
+        """Import data to the database using the provided query and values"""
+        try:
+            db.cursor.execute(query, values)
+            db.connection.commit()
+            return True
+        except Exception as ex:
+            logger.error(f"Error importing player data: {ex}")
+            return False
+
 class MVP_Votes(Tournament_DB):
     
     def createTable(self):
