@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import discord
+import asyncio
 from discord.ext import commands
 import sys
 import os
@@ -36,11 +37,21 @@ def mock_db():
 def mock_sign_up_view():
     view = MagicMock(spec=SignUpView)
     view.children = True
-    view.wait = AsyncMock()
+    
+    # Create a wait method that returns immediately without waiting
+    async def immediate_return(*args, **kwargs):
+        return None
+    
+    view.wait = immediate_return
+    view.message = MagicMock()
     return view
 
 @pytest.mark.asyncio
 async def test_on_member_join_new_member(events_controller, mock_member, mock_db, mock_sign_up_view):
+    # Create a no-op wait method to replace SignUpView.wait
+    async def skip_wait(self):
+        pass  # Do nothing and return immediately
+    
     # Mocking discord.Embed and discord.File
     with patch('discord.Embed') as MockEmbed, \
          patch('discord.File') as MockFile, \
@@ -48,7 +59,9 @@ async def test_on_member_join_new_member(events_controller, mock_member, mock_db
          patch('model.dbc_model.Player.isMemberExist', return_value=False), \
          patch('view.signUp_view.SignUpView', return_value=mock_sign_up_view), \
          patch('common.common_scripts.get_ksu_logo', return_value='/common/images/KSU_Esports_Tournament.png'), \
-         patch('common.common_scripts.ksu_img_resize', return_value=(MagicMock(), '.png')):
+         patch('common.common_scripts.ksu_img_resize', return_value=(MagicMock(), '.png')), \
+         patch('asyncio.sleep', AsyncMock()), \
+         patch('view.signUp_view.SignUpView.wait', skip_wait):
         
         # Create mock instances of Embed and File
         mock_embed_instance = MagicMock()
@@ -84,8 +97,13 @@ async def test_on_member_join_new_member(events_controller, mock_member, mock_db
 
 @pytest.mark.asyncio
 async def test_on_member_join_existing_member(events_controller, mock_member, mock_db):
+    # Create a no-op wait method to replace SignUpView.wait
+    async def skip_wait(self):
+        pass  # Do nothing and return immediately
+    
     with patch('model.dbc_model.Tournament_DB', return_value=mock_db), \
-         patch('model.dbc_model.Player.isMemberExist', return_value=True):
+         patch('model.dbc_model.Player.isMemberExist', return_value=True), \
+         patch('view.signUp_view.SignUpView.wait', skip_wait):
         
         # Run the test
         await events_controller.on_member_join(mock_member)
@@ -99,6 +117,7 @@ async def test_on_member_join_existing_member(events_controller, mock_member, mo
 
 @pytest.mark.asyncio
 async def test_on_member_join_view_no_children(events_controller, mock_member, mock_db):
+    # Create a mock SignUpView with no children
     mock_sign_up_view = MagicMock(spec=SignUpView)
     mock_sign_up_view.children = False
     
@@ -116,6 +135,7 @@ async def test_on_member_join_view_no_children(events_controller, mock_member, m
         
         # Verify that the server owner was notified
         mock_guild_owner.send.assert_called_once()
+        # Check that the error message is present in the notification
         assert "signup view is not working" in mock_guild_owner.send.call_args.args[0]
 
 @pytest.mark.asyncio
