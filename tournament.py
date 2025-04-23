@@ -1,3 +1,7 @@
+# Suppress audioop deprecation warning from discord.py
+import warnings
+warnings.filterwarnings("ignore", message="'audioop' is deprecated")
+
 import discord
 from discord.ext import commands
 import asyncio
