@@ -63,7 +63,7 @@ async def test_checkin_admin(test_bot, mock_interaction):
          
         mock_view.return_value.message = MagicMock()
         
-        await cog.checkin(mock_interaction, timeout=60)
+        await cog.checkin.callback(cog, mock_interaction, timeout=60)
 
         mock_interaction.response.send_message.assert_called_once_with(
             f"Invitation successfully sent to {mock_channel.name}")
@@ -74,7 +74,7 @@ async def test_checkin_non_admin(test_bot, mock_interaction_non_admin):
     """Test that non-admins cannot execute the /checkin_game command."""
     cog = CheckinController(test_bot)
 
-    await cog.checkin(mock_interaction_non_admin, timeout=60)
+    await cog.checkin.callback(cog, mock_interaction_non_admin, timeout=60)
 
     mock_interaction_non_admin.response.send_message.assert_called_once_with(
         "Sorry you dont have required permission to use this command", ephemeral=True
@@ -100,7 +100,7 @@ async def test_view_player_tier_admin(test_bot, mock_interaction):
             ("Gold", "II", 7.5)            # Second call returns tier data
         ])
         
-        await cog.view_player_tier(mock_interaction, player_name="TestPlayer")
+        await cog.view_player_tier.callback(cog, mock_interaction, player_name="TestPlayer")
         
         # Check that the correct SQL queries were executed
         mock_db.cursor.execute.assert_any_call(
@@ -138,7 +138,7 @@ async def test_view_player_tier_invalid_player(test_bot, mock_interaction):
         mock_db.cursor.execute = MagicMock()
         mock_db.cursor.fetchone = MagicMock(return_value=None)
         
-        await cog.view_player_tier(mock_interaction, player_name="NonExistentPlayer")
+        await cog.view_player_tier.callback(cog, mock_interaction, player_name="NonExistentPlayer")
         
         # Check response for player not found
         mock_interaction.response.send_message.assert_called_once_with(
@@ -154,7 +154,7 @@ async def test_view_player_tier_non_admin(test_bot, mock_interaction_non_admin):
     """Test that non-admins cannot use the /view_player_tier command."""
     cog = TierManagement(test_bot)
 
-    await cog.view_player_tier(mock_interaction_non_admin, player_name="TestPlayer")
+    await cog.view_player_tier.callback(cog, mock_interaction_non_admin, player_name="TestPlayer")
 
     mock_interaction_non_admin.response.send_message.assert_called_once_with(
         "Sorry, you don't have required permission to use this command", ephemeral=True
@@ -166,7 +166,7 @@ async def test_toxicity_update_admin(test_bot, mock_interaction):
     cog = PlayerManagement(test_bot)
 
     with patch("controller.player_management.PlayerModel.update_toxicity", return_value=True):
-        await cog.toxicity(mock_interaction, player="toxic_player")
+        await cog.toxicity.callback(cog, mock_interaction, player="toxic_player")
 
         mock_interaction.response.send_message.assert_called_once_with(
             "toxic_player's toxicity point has been updated.", ephemeral=True
@@ -178,7 +178,7 @@ async def test_toxicity_update_invalid_player(test_bot, mock_interaction):
     cog = PlayerManagement(test_bot)
 
     with patch("controller.player_management.PlayerModel.update_toxicity", return_value=False):
-        await cog.toxicity(mock_interaction, player="unknown_player")
+        await cog.toxicity.callback(cog, mock_interaction, player="unknown_player")
 
         mock_interaction.response.send_message.assert_called_once_with(
             "unknown_player, this username could not be found.", ephemeral=True
@@ -189,7 +189,7 @@ async def test_toxicity_update_non_admin(test_bot, mock_interaction_non_admin):
     """Test that non-admins cannot use the /toxicity command."""
     cog = PlayerManagement(test_bot)
 
-    await cog.toxicity(mock_interaction_non_admin, player="some_player")
+    await cog.toxicity.callback(cog, mock_interaction_non_admin, player="some_player")
 
     mock_interaction_non_admin.response.send_message.assert_called_once_with(
         "❌ This command is only for administrators.", ephemeral=True
@@ -208,7 +208,7 @@ async def test_get_toxicity(test_bot, mock_interaction):
         mock_player.find_player_by_name.return_value = 123
         mock_player.get_toxicity_points.return_value = 5
         
-        await cog.get_toxicity(mock_interaction, player="toxic_player")
+        await cog.get_toxicity.callback(cog, mock_interaction, player="toxic_player")
         
         # Check that the correct methods were called
         mock_player.find_player_by_name.assert_called_once_with("toxic_player")
@@ -232,7 +232,7 @@ async def test_get_toxicity_player_not_found(test_bot, mock_interaction):
         # Mock player not found
         mock_player.find_player_by_name.return_value = None
         
-        await cog.get_toxicity(mock_interaction, player="unknown_player")
+        await cog.get_toxicity.callback(cog, mock_interaction, player="unknown_player")
         
         # Check that the correct methods were called
         mock_player.find_player_by_name.assert_called_once_with("unknown_player")
