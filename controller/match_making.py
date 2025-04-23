@@ -213,8 +213,9 @@ def possible_assighn_role(player, teamRoleSet):
     for role, performance in player["roleBasedPerformance"].items():
         if role not in teamRoleSet:
             return role, performance
-        if role == "forced":
-            return role, performance
+    # If forced role is available and not in team role set
+    if "forced" in player["roleBasedPerformance"] and "forced" not in teamRoleSet:
+        return "forced", player["roleBasedPerformance"]["forced"]
     return None, None
 
 def isPlayerRoleprefered(player, nextPlayer, role):
@@ -320,7 +321,7 @@ def verify_swap_teams(t1, t2):
         for player_name, gameid in player.items():
             group_t1[gameid].append(player_name)
 
-    for player in T2:
+    for player in t2:
         for player_name, gameid in player.items():
             group_t2[gameid].append(player_name)
 

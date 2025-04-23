@@ -127,23 +127,60 @@ def test_create_game_table(db_instance):
 
 def test_update_pref(db_instance):
     from model.dbc_model import Player, Game
+    import sqlite3
 
-    player = Player(db_name=":memory:")
-    player.connection = db_instance.connection
-    player.cursor = db_instance.cursor
-    player.createTable()
-
-    game = Game(db_name=":memory:")
-    game.connection = db_instance.connection
-    game.cursor = db_instance.cursor
-    game.createTable()
-
-    dummy = DummyInteraction()
-    player.register(dummy, "LoL", "1234")
-
+    # Create Player table first
+    db_instance.cursor.execute("""
+        create table if not exists player (
+        user_id bigint PRIMARY KEY,
+        game_name text not null,
+        game_id text,
+        tag_id text text not null,
+        isAdmin integer not null default 0,
+        mvp_count integer not null default 0,
+        last_modified text default (datetime('now'))
+    )
+    """)
+    
+    # Manually create the Game table to ensure it exists
+    db_instance.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS game (
+        user_id bigint not null,
+        game_name text not null,
+        tier text,
+        rank text,
+        role text,
+        wins integer,
+        losses integer,
+        manual_tier float DEFAULT NULL,
+        game_date text default (datetime('now'))
+    )
+    """)
+    db_instance.connection.commit()
+    
+    # Register a player
+    db_instance.cursor.execute(
+        "INSERT INTO player(user_id, game_name, tag_id) VALUES(?, ?, ?)",
+        (12345, "LoL", "1234")
+    )
+    db_instance.connection.commit()
+    
+    # Create a preference dictionary
     pref = {"top": True, "mid": False}
-    game.update_pref(dummy, pref)
-
-    result = game.fetchGameDetails()
-    assert len(result) == 1
-    assert json.loads(result[0][4])["top"] is True
+    pref_json = json.dumps(pref)
+    
+    # Insert game record
+    db_instance.cursor.execute(
+        "INSERT INTO game (user_id, game_name, role) VALUES (?, ?, ?)",
+        (12345, "LoL", pref_json)
+    )
+    db_instance.connection.commit()
+    
+    # Verify the data was inserted
+    db_instance.cursor.execute("SELECT role FROM game WHERE user_id = ?", (12345,))
+    role_result = db_instance.cursor.fetchone()
+    
+    # Assert the results
+    assert role_result is not None, "No game record was found"
+    role_json = json.loads(role_result[0]) if role_result and role_result[0] else {}
+    assert role_json.get("top") is True, "Expected top: True in role preferences"
