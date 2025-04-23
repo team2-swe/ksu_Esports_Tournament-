@@ -4,7 +4,7 @@ A comprehensive and feature-rich Discord bot designed to manage League of Legend
 
 ---
 
-## 🚀 Features
+##  Features
 
 - **Environment Configuration** via `.env` for secure and customizable settings
 - **Player Statistics Management** using SQLite and synchronized Google Sheets
