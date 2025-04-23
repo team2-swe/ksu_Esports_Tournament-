@@ -6,6 +6,12 @@ import discord
 from dotenv import load_dotenv
 load_dotenv()
 
+# Define directory paths first so we can use them elsewhere
+# pathlib.Path(__file__) this is the current file where the code is present
+File_Dir = pathlib.Path(__file__).parent # This will give the current directory path where the file is present
+Base_Dir = File_Dir.parent
+controller_dir = Base_Dir / "controller"
+
 DISCORD_API_SECRET = os.getenv("DISCORD_APITOKEN")
 GUILD_ID = int(os.getenv("DISCORD_GUILD"))
 DATABASE_NAME = os.getenv("DATABASE_NAME")
@@ -25,10 +31,10 @@ START_API_TASK = os.getenv("START_API_TASK")
 OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 PROMPT = os.getenv("prompt")
 
-# pathlib.Path(__file__) this is the current file where the code is present
-File_Dir = pathlib.Path(__file__).parent # This will give the current directory path where the file is present
-Base_Dir = File_Dir.parent
-controller_dir = Base_Dir / "controller"
+# Google Sheets and API settings for export_import
+GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID", "default_sheet_id")
+CELL_RANGE = os.getenv("CELL_RANGE", "Sheet1")  # Default sheet name if not specified
+LOL_service_path = os.getenv("LOL_SERVICE_PATH", str(Base_Dir / "service_account.json"))
 
 
 LOGGING_CONFIG = {

@@ -66,7 +66,6 @@ class Tournament_DB:
 class Player(Tournament_DB):
     
     def createTable(self):
-
         player_table_query = """
             create table if not exists player (
             user_id bigint PRIMARY KEY,
@@ -81,6 +80,27 @@ class Player(Tournament_DB):
         """
         self.cursor.execute(player_table_query)
         self.connection.commit()
+        
+    @staticmethod
+    def metadata(db):
+        """Get metadata about the player table columns"""
+        try:
+            db.cursor.execute("PRAGMA table_info(player)")
+            return db.cursor.fetchall()
+        except Exception as ex:
+            logger.error(f"Error getting player metadata: {ex}")
+            return []
+            
+    @staticmethod
+    def generalplayerQuery(db, query, params):
+        """Execute a general query on the player table"""
+        try:
+            db.cursor.execute(query, params)
+            db.connection.commit()
+            return True
+        except Exception as ex:
+            logger.error(f"Error executing player query: {ex}")
+            return False
 
     def register(self, interaction, gamename, tagid):
         register_query = "insert into player(user_id, game_name, tag_id) values(?, ?, ?)"
