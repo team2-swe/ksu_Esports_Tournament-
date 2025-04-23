@@ -98,7 +98,8 @@ class Import_Export(commands.Cog):
             defer the responce to make sure no time out error
     '''  
     @app_commands.command(name="export_players", description="Export all player information to Google Sheets")  
-    async def exportToGoogleSheet(self, interaction:discord.Interaction):
+    @app_commands.describe(custom_name="Optional custom sheet name (default: timestamp-based name)")
+    async def exportToGoogleSheet(self, interaction:discord.Interaction, custom_name: str = None):
         if interaction.user.guild_permissions.administrator:
             # Check if Google APIs are available
             if not self.google_apis_enabled:
@@ -108,8 +109,14 @@ class Import_Export(commands.Cog):
                 )
                 return
                 
-            today = datetime.now()
-            sheet_name = f"players_{str(today.strftime('%m%d%Y'))}"
+            # Use custom name if provided, otherwise use timestamp format
+            if custom_name:
+                # Replace spaces with underscores for better sheet naming
+                sheet_name = custom_name.replace(' ', '_')
+            else:
+                # Use a detailed timestamp format: date-day-year-hour-minute
+                today = datetime.now()
+                sheet_name = f"players_{str(today.strftime('%m-%d-%Y-%H-%M'))}"
             
             try:
                 await interaction.response.defer()
@@ -153,8 +160,15 @@ class Import_Export(commands.Cog):
                 
                 # Create sheet URL and send success message
                 sheet_url = f"https://docs.google.com/spreadsheets/d/{self.googleSheetId}/edit#gid=0"
+                
+                # More descriptive success message
+                if custom_name:
+                    message = f"✅ Player data exported to custom sheet: **{sheet_name}**"
+                else:
+                    message = f"✅ Player data exported with timestamp: **{sheet_name}**"
+                    
                 await interaction.followup.send(
-                    f"✅ Player data successfully exported!\n\n**Sheet Name:** {sheet_name}\n**Players Exported:** {len(list_of_playeres)}\n\n[View in Google Sheets]({sheet_url})"
+                    f"{message}\n\n**Total Players Exported:** {len(list_of_playeres)}\n\n[View in Google Sheets]({sheet_url})"
                 )
 
             except Exception as e:
