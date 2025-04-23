@@ -3,6 +3,7 @@ import sys
 import os
 import json
 import asyncio
+import types
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock, call
 
@@ -119,11 +120,14 @@ class TestTeamSwap(unittest.TestCase):
             # No commit should happen when there's an exception
             mock_connection.commit.assert_not_called()
 
-# Create a new class that inherits from TeamSwapController to simplify testing
-class TestableSwapController(TeamSwapController):
-    """Testable version of TeamSwapController with methods that we can override for testing"""
+# Instead of a test class with __init__, create factory functions
+# This avoids the pytest collection warning
+def create_test_controller_match_not_found(bot):
+    """Factory function to create a controller that simulates 'match not found'"""
+    controller = TeamSwapController(bot)
     
-    async def test_command_match_not_found(self, interaction, match_id):
+    # Override the swap_team method
+    async def swap_team(self, interaction, match_id, player1_id, player2_id):
         """Method for testing 'match not found' scenario"""
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message(
@@ -138,7 +142,16 @@ class TestableSwapController(TeamSwapController):
         await interaction.followup.send(f"Match ID '{match_id}' not found.")
         return
     
-    async def test_command_match_completed(self, interaction, match_id):
+    # Replace the method
+    controller.swap_team = types.MethodType(swap_team, controller)
+    return controller
+
+def create_test_controller_match_completed(bot):
+    """Factory function to create a controller that simulates 'match completed'"""
+    controller = TeamSwapController(bot)
+    
+    # Override the swap_team method
+    async def swap_team(self, interaction, match_id, player1_id, player2_id):
         """Method for testing 'match completed' scenario"""
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message(
@@ -155,7 +168,16 @@ class TestableSwapController(TeamSwapController):
         )
         return
     
-    async def test_command_with_exception(self, interaction, match_id):
+    # Replace the method
+    controller.swap_team = types.MethodType(swap_team, controller)
+    return controller
+
+def create_test_controller_with_exception(bot):
+    """Factory function to create a controller that simulates exception handling"""
+    controller = TeamSwapController(bot)
+    
+    # Override the swap_team method
+    async def swap_team(self, interaction, match_id, player1_id, player2_id):
         """Method for testing exception handling"""
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message(
@@ -169,6 +191,10 @@ class TestableSwapController(TeamSwapController):
         # Simulate an exception
         await interaction.followup.send(f"Error processing team swap: Test exception")
         return
+    
+    # Replace the method
+    controller.swap_team = types.MethodType(swap_team, controller)
+    return controller
 
 # Pytest-based tests for async functions
 @pytest.fixture
@@ -176,41 +202,43 @@ def bot_instance():
     return MagicMock()
 
 @pytest.fixture
-def controller_instance(bot_instance):
-    return TestableSwapController(bot_instance)
-
-@pytest.fixture
 def match_id():
     return "test_match_1"
 
-@pytest.fixture
-def player_ids():
-    return 123456789, 987654321
+# Simple constants instead of a fixture
+PLAYER1_ID = 123456789
+PLAYER2_ID = 987654321
 
 @pytest.mark.asyncio
-async def test_swap_team_players_command_match_not_found(controller_instance, match_id):
+async def test_swap_team_players_command_match_not_found(bot_instance, match_id):
+    # Create controller that simulates match not found
+    controller = create_test_controller_match_not_found(bot_instance)
+    
     # Mock discord interaction
     interaction = AsyncMock()
     interaction.user.guild_permissions.administrator = True
     interaction.response.defer = AsyncMock()
     interaction.followup.send = AsyncMock()
     
-    # Call the test method
-    await controller_instance.test_command_match_not_found(interaction, match_id)
+    # Call the method
+    await controller.swap_team(interaction, match_id, PLAYER1_ID, PLAYER2_ID)
     
     # Verify response
     interaction.followup.send.assert_called_once_with(f"Match ID '{match_id}' not found.")
 
 @pytest.mark.asyncio
-async def test_swap_team_players_command_match_completed(controller_instance, match_id):
+async def test_swap_team_players_command_match_completed(bot_instance, match_id):
+    # Create controller that simulates match completed
+    controller = create_test_controller_match_completed(bot_instance)
+    
     # Mock discord interaction
     interaction = AsyncMock()
     interaction.user.guild_permissions.administrator = True
     interaction.response.defer = AsyncMock()
     interaction.followup.send = AsyncMock()
     
-    # Call the test method
-    await controller_instance.test_command_match_completed(interaction, match_id)
+    # Call the method
+    await controller.swap_team(interaction, match_id, PLAYER1_ID, PLAYER2_ID)
     
     # Verify response
     interaction.followup.send.assert_called_once_with(
@@ -218,14 +246,17 @@ async def test_swap_team_players_command_match_completed(controller_instance, ma
     )
 
 @pytest.mark.asyncio
-async def test_swap_team_players_no_permission(controller_instance, match_id):
-    # Mock discord interaction
+async def test_swap_team_players_no_permission(bot_instance, match_id):
+    # Create controller
+    controller = create_test_controller_match_not_found(bot_instance)
+    
+    # Mock discord interaction with no admin permissions
     interaction = AsyncMock()
     interaction.user.guild_permissions.administrator = False
     interaction.response.send_message = AsyncMock()
     
-    # Call any test method - it will check permissions first
-    await controller_instance.test_command_match_not_found(interaction, match_id)
+    # Call method
+    await controller.swap_team(interaction, match_id, PLAYER1_ID, PLAYER2_ID)
     
     # Verify response
     interaction.response.send_message.assert_called_once_with(
@@ -234,15 +265,18 @@ async def test_swap_team_players_no_permission(controller_instance, match_id):
     )
 
 @pytest.mark.asyncio
-async def test_swap_team_players_with_exception(controller_instance, match_id):
+async def test_swap_team_players_with_exception(bot_instance, match_id):
+    # Create controller that simulates exception
+    controller = create_test_controller_with_exception(bot_instance)
+    
     # Mock discord interaction
     interaction = AsyncMock()
     interaction.user.guild_permissions.administrator = True
     interaction.response.defer = AsyncMock()
     interaction.followup.send = AsyncMock()
     
-    # Call the test method
-    await controller_instance.test_command_with_exception(interaction, match_id)
+    # Call the method
+    await controller.swap_team(interaction, match_id, PLAYER1_ID, PLAYER2_ID)
     
     # Verify error response
     interaction.followup.send.assert_called_once_with("Error processing team swap: Test exception")
