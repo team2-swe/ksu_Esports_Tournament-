@@ -489,35 +489,75 @@ class Matches(Tournament_DB):
         self.connection.commit()
         
     def get_next_match_id(self):
-        """Get the next sequential match ID (ignoring SQLite's autoincrement behavior)"""
+        """Get the next sequential match ID (1, 2, 3, etc.) for match_1, match_2, match_3"""
+        # First try to get it from the database properly
         try:
-            # Use a transaction to avoid database locks
-            with self.connection:  # This automatically manages the transaction
-                # First check what's the highest match_id already used 
+            # Separate the operations to reduce time inside transaction
+            # First get the highest ID currently in use
+            highest_match = 0
+            try:
                 self.cursor.execute("SELECT MAX(CAST(REPLACE(teamId, 'match_', '') AS INTEGER)) FROM Matches WHERE teamId LIKE 'match_%'")
                 result = self.cursor.fetchone()
-                highest_match = result[0] if result and result[0] is not None else 0
-                
-                # Get the current counter value
+                if result and result[0] is not None:
+                    highest_match = result[0]
+            except Exception as ex:
+                logger.error(f"Error getting highest match ID: {ex}")
+                # Continue with highest_match = 0
+            
+            # Then get the current counter value
+            counter_value = 0
+            try:
                 self.cursor.execute("SELECT value FROM Counters WHERE name = 'match_counter'")
                 result = self.cursor.fetchone()
-                counter_value = result[0] if result and result[0] is not None else 0
-                
-                # Use the higher of the two values
-                next_id = max(counter_value, highest_match) + 1
-                
-                # Update the counter to the next ID in the same transaction
-                self.cursor.execute("UPDATE Counters SET value = ? WHERE name = 'match_counter'", (next_id,))
-                
-                # No need to call commit() explicitly - the 'with' block handles it
-                return next_id
+                if result and result[0] is not None:
+                    counter_value = result[0]
+            except Exception as ex:
+                logger.error(f"Error getting counter value: {ex}")
+                # Continue with counter_value = 0
+            
+            # Use the higher of the two values plus 1
+            next_id = max(counter_value, highest_match) + 1
+            
+            # Now update the counter in a short, specific transaction
+            try:
+                with self.connection:
+                    self.cursor.execute("UPDATE Counters SET value = ? WHERE name = 'match_counter'", (next_id,))
+            except Exception as ex:
+                logger.error(f"Error updating counter: {ex}")
+                # We'll still use the calculated next_id even if update fails
+            
+            logger.info(f"Generated match ID: match_{next_id}")
+            return next_id
                 
         except Exception as ex:
             logger.error(f"get_next_match_id failed with error {ex}")
             
-            # As a fallback, just return a random high number to avoid conflicts
-            import random
-            return random.randint(1000, 10000)
+            # As a fallback, calculate next ID manually by checking existing match IDs
+            # This is more reliable than returning a random number
+            try:
+                self.cursor.execute("SELECT teamId FROM Matches WHERE teamId LIKE 'match_%'")
+                matches = self.cursor.fetchall()
+                if matches:
+                    # Extract numbers from match_X format and find max
+                    existing_ids = []
+                    for match in matches:
+                        if match and match[0]:
+                            try:
+                                id_str = match[0].replace('match_', '')
+                                if id_str.isdigit():
+                                    existing_ids.append(int(id_str))
+                            except:
+                                pass
+                    
+                    next_id = max(existing_ids) + 1 if existing_ids else 1
+                    logger.info(f"Fallback generated match ID: match_{next_id}")
+                    return next_id
+            except Exception as inner_ex:
+                logger.error(f"Fallback match ID calculation failed: {inner_ex}")
+            
+            # If all else fails, start from 1
+            logger.info("Using default match ID: match_1")
+            return 1
         
 class MVP_Votes(Tournament_DB):
     
