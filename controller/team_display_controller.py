@@ -60,13 +60,98 @@ class TeamDisplayController(commands.Cog):
         self.bot = bot
         
     @app_commands.command(name="display_teams", description="Display the current teams for a specific match")
-    @app_commands.describe(match_id="The ID of the match to display (e.g. match_1)")
-    async def display_teams(self, interaction: discord.Interaction, match_id: str):
+    @app_commands.describe(match_id="Optional: The ID of the match to display (e.g. match_1)")
+    async def display_teams(self, interaction: discord.Interaction, match_id: str = None):
         """
-        Admin command to display the current teams for a specific match
+        Admin command to display the current teams for a specific match.
+        If match_id is not provided, shows a dropdown of available matches,
+        or automatically displays the only match if there's just one.
         """
         if interaction.user.guild_permissions.administrator:
-            await interaction.response.defer(thinking=True)
+            # Check if a match_id was provided
+            if match_id is None:
+                # No match ID provided, handle dropdown or auto-display
+                await interaction.response.defer(thinking=True)
+                try:
+                    # Get all available matches
+                    db = Tournament_DB()
+                    db.cursor.execute("""
+                        SELECT DISTINCT teamId 
+                        FROM Matches 
+                        WHERE teamId LIKE 'match_%'
+                        ORDER BY teamId
+                    """)
+                    match_ids = [record[0] for record in db.cursor.fetchall()]
+                    db.close_db()
+                    
+                    if not match_ids:
+                        await interaction.followup.send(
+                            "No active matches found. Create teams first using `/run_matchmaking`.",
+                            ephemeral=True
+                        )
+                        return
+                    
+                    # If there's only one match, auto-display it
+                    if len(match_ids) == 1:
+                        match_id = match_ids[0]
+                        logger.info(f"Only one match found ('{match_id}'), auto-displaying.")
+                        # Continue to the regular team display with this match_id
+                    else:
+                        # Create a custom view for match selection for display
+                        class DisplayMatchSelectorView(discord.ui.View):
+                            def __init__(self, controller, match_ids, timeout=60):
+                                super().__init__(timeout=timeout)
+                                self.controller = controller
+                                
+                                # Create select menu with match options
+                                select = discord.ui.Select(
+                                    placeholder="Select a match to display...",
+                                    min_values=1,
+                                    max_values=1,
+                                )
+                                
+                                # Sort match_ids naturally (match_1, match_2, ..., match_10, etc.)
+                                sorted_match_ids = sorted(match_ids, key=lambda x: int(re.search(r'match_(\d+)', x).group(1)) if re.search(r'match_(\d+)', x) else 0)
+                                
+                                # Add options to the select menu
+                                for m_id in sorted_match_ids[:25]:  # Discord has a 25-option limit
+                                    select.add_option(label=m_id, value=m_id)
+                                
+                                # Add callback
+                                select.callback = self.select_callback
+                                
+                                # Add select to view
+                                self.add_item(select)
+                            
+                            async def select_callback(self, interaction):
+                                """Callback when a match is selected from the dropdown"""
+                                # Get selected match ID
+                                selected_match_id = interaction.data['values'][0]
+                                
+                                # Display the selected match
+                                await self.controller.display_match(interaction, selected_match_id)
+                                
+                                # Stop listening for interactions
+                                self.stop()
+                        
+                        # Show match selection dropdown
+                        view = DisplayMatchSelectorView(self, match_ids)
+                        await interaction.followup.send(
+                            "Select a match to display:",
+                            view=view,
+                            ephemeral=True
+                        )
+                        return
+                
+                except Exception as ex:
+                    logger.error(f"Error in display_teams dropdown: {ex}")
+                    await interaction.followup.send(f"Error getting match data: {str(ex)}")
+                    return
+            
+            # If we reach here, we have a match_id (either provided or auto-selected)
+            # If not auto-responding to a dropdown selection, defer the response
+            if not interaction.response.is_done():
+                await interaction.response.defer(thinking=True)
             
             try:
                 # Get team data from the database
@@ -188,6 +273,121 @@ class TeamDisplayController(commands.Cog):
                 ephemeral=True
             )
     
+    async def display_match(self, interaction, match_id):
+        """
+        Helper method to display a specific match's teams.
+        Used by the dropdown callback in display_teams command.
+        
+        Args:
+            interaction: The Discord interaction
+            match_id: The match ID to display
+        """
+        try:
+            # Defer if not already deferred
+            if not interaction.response.is_done():
+                await interaction.response.defer(thinking=True)
+            
+            # Get team data from the database
+            db = Tournament_DB()
+            
+            # Get team 1 players
+            db.cursor.execute("""
+                SELECT m.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier
+                FROM Matches m
+                JOIN player p ON m.user_id = p.user_id
+                LEFT JOIN (
+                    SELECT user_id, tier, rank, role, manual_tier, MAX(game_date) as max_date
+                    FROM game
+                    GROUP BY user_id
+                ) g ON m.user_id = g.user_id
+                WHERE m.teamId = ? AND m.teamUp = 'team1'
+            """, (match_id,))
+            
+            team1_players = []
+            for record in db.cursor.fetchall():
+                user_id, game_name, tier, rank, role_json, manual_tier = record
+                
+                # Parse role preferences
+                roles = []
+                if role_json:
+                    try:
+                        roles = json.loads(role_json)
+                        if not isinstance(roles, list):
+                            roles = [str(roles)]
+                    except:
+                        roles = [str(role_json)]
+                
+                player = {
+                    'user_id': user_id,
+                    'game_name': game_name,
+                    'tier': tier.lower() if tier else 'default',
+                    'rank': rank if rank else '',
+                    'role': roles,
+                    'manual_tier': manual_tier
+                }
+                team1_players.append(player)
+            
+            # Get team 2 players
+            db.cursor.execute("""
+                SELECT m.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier
+                FROM Matches m
+                JOIN player p ON m.user_id = p.user_id
+                LEFT JOIN (
+                    SELECT user_id, tier, rank, role, manual_tier, MAX(game_date) as max_date
+                    FROM game
+                    GROUP BY user_id
+                ) g ON m.user_id = g.user_id
+                WHERE m.teamId = ? AND m.teamUp = 'team2'
+            """, (match_id,))
+            
+            team2_players = []
+            for record in db.cursor.fetchall():
+                user_id, game_name, tier, rank, role_json, manual_tier = record
+                
+                # Parse role preferences
+                roles = []
+                if role_json:
+                    try:
+                        roles = json.loads(role_json)
+                        if not isinstance(roles, list):
+                            roles = [str(roles)]
+                    except:
+                        roles = [str(role_json)]
+                
+                player = {
+                    'user_id': user_id,
+                    'game_name': game_name,
+                    'tier': tier.lower() if tier else 'default',
+                    'rank': rank if rank else '',
+                    'role': roles,
+                    'manual_tier': manual_tier
+                }
+                team2_players.append(player)
+            
+            db.close_db()
+            
+            if not team1_players and not team2_players:
+                await interaction.followup.send(
+                    f"Match '{match_id}' doesn't have any players. Perhaps it was deleted or not correctly created."
+                )
+                return
+            
+            # Create embeds for the teams
+            team_embeds = self.create_team_embeds(match_id, team1_players, team2_players)
+            
+            # Create role matchup comparison
+            role_matchup_text = self.create_role_matchup_text(team1_players, team2_players)
+            
+            # Send the team display
+            await interaction.followup.send(
+                content=f"**Teams for Match ID: `{match_id}`**\n\n{role_matchup_text}",
+                embeds=team_embeds
+            )
+            
+        except Exception as ex:
+            logger.error(f"Error in display_match: {ex}")
+            await interaction.followup.send(f"Error displaying teams: {str(ex)}")
+            
     @app_commands.command(name="announce_teams", description="Announce teams to a channel using a dropdown")
     @app_commands.describe(
         channel="The channel to announce to (defaults to tournament announcement channel)",
