@@ -19,7 +19,7 @@ A comprehensive and feature-rich Discord bot designed to manage League of Legend
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 ```
 ksu_Esports_Tournament/
 ├── common/                # Shared utilities and API functions
@@ -114,7 +114,7 @@ If successful, the terminal will display: `Logged into server as [BotName]`
 
 ---
 
-## 🧠 Command Overview
+##  Command Overview
 
 | Command | Description |
 |---------|-------------|
@@ -209,12 +209,107 @@ The bot uses SQLite with the following main tables:
 
 ---
 
+##  For Players
+
+### Getting Started
+1. Join the Discord server where the tournament bot is running
+2. Use `/register [gamename] [tag]` to register your League of Legends account
+3. Set your role preferences with `/pref [role1] [role2] [role3] [role4] [role5]`
+4. Wait for tournament organizers to run matchmaking and announce teams
+
+### Player Commands
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/register [gamename] [tag]` | Register your LoL account | `/register Faker T1-Faker` |
+| `/pref [role1] [role2] [role3] [role4] [role5]` | Set role preferences | `/pref top mid jungle adc support` |
+| `/role` | Update existing role preferences | `/role` |
+| `/stats [user]` | View your or another player's stats | `/stats @Username` |
+| `/player_details [user]` | View detailed player information | `/player_details @Username` |
+| `/lookup [tag]` | Look up a player by tag | `/lookup T1-Faker` |
+| `/vote_mvp [match_id] [player]` | Vote for MVP after a match | `/vote_mvp match_1 @Username` |
+
+### Tips for Players
+- Always set your role preferences in order from most to least preferred
+- Update your role preferences if they change using the `/role` command
+- If you need to sit out a game, let an admin know before matchmaking starts
+- Be prompt for check-ins to ensure matchmaking works properly
+- Vote for MVP after each match to recognize strong performances
+
+## 👑 For Admins
+
+### Installation Instructions
+1. Follow the Setup Instructions section above to set up the bot
+2. Invite the bot to your server using the OAuth2 URL from Discord Developer Portal
+3. Ensure the bot has proper permissions (manage roles, send messages, embed links, etc.)
+4. Set up the required channels in your `.env` file
+5. Start the bot with `python tournament.py`
+
+### Admin-Only Commands
+| Command | Description | Access |
+|---------|-------------|--------|
+| `/run_matchmaking [players_per_game] [selection_method]` | Start the matchmaking process | Admin only |
+| `/announce_teams [channel] [format]` | Announce created teams | Admin only |
+| `/display_teams [match_id]` | Display teams for a specific match | Admin only |
+| `/export_players [custom_name]` | Export player data to Google Sheets | Admin only |
+| `/import_players [sheet_name]` | Import player data from Google Sheets | Admin only |
+| `/swap_players [match_id] [player1] [player2]` | Swap two players between teams | Admin only |
+| `/record_match_result [match_id] [winning_team]` | Record match results | Admin only |
+| `/set_toxicity [player] [points]` | Set toxicity points for a player | Admin only |
+| `/set_tier [player] [tier]` | Manually set a player's tier | Admin only |
+| `/checkin_start [time]` | Start the check-in process | Admin only |
+| `/simulate_volunteers [count]` | Simulate volunteers for sitting out | Admin only |
+| `/giveaway [prize] [entries]` | Run a giveaway raffle | Admin only |
+
+### Configuration Options
+All configuration is done through the `.env` file. The main options are:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DISCORD_APITOKEN` | Your Discord bot token | Yes |
+| `DISCORD_GUILD` | Your Discord server ID | Yes |
+| `DATABASE_NAME` | Name of the SQLite database file | Yes |
+| `TOURNAMENT_CH` | Channel ID for tournament announcements | Yes |
+| `FEEDBACK_CH` | Channel ID for feedback messages | Yes |
+| `CHANNEL_CONFIG` | Comma-separated channel names to create | Yes |
+| `CHANNEL_PLAYER` | Channel ID for player-related messages | Yes |
+| `PRIVATE_CH` | Channel ID for admin-only messages | Yes |
+| `API_KEY` | Riot Games API key | Yes |
+| `API_URL` | Riot Games API URL | Yes |
+| `GOOGLE_SHEET_ID` | Google Sheet ID for import/export | Optional |
+| `CELL_RANGE` | Cell range in Google Sheet | Optional |
+| `LOL_SERVICE_PATH` | Path to Google service account JSON | Optional |
+
+## 🐛 Known Issues and Limitations
+
+### Known Bugs
+- Database locking can occur when multiple operations happen simultaneously
+  - **Workaround**: Restart the bot to clear any hanging connections
+- Team display may show duplicate players if multiple runs of matchmaking are done with the same match_id
+  - **Fix**: Now using sequential match IDs to avoid conflicts
+- Google Sheets export occasionally times out with large player pools
+  - **Workaround**: Export in smaller batches or use a more stable internet connection
+
+### Undeveloped Features
+- Match history tracking and statistics over time
+- Automatic team balancing based on past performance
+- Integration with tournament bracket systems
+- Player ranking system based on performance
+- Automated match scheduling
+
+### Compatibility and Requirements
+- Requires Python 3.8 or later
+- Discord.py library v2.0.0 or higher
+- SQLite database (included with Python)
+- Stable internet connection for Riot API and Discord connectivity
+- For Google Sheets functionality: Google Cloud account and proper API setup
+
 ## 🔧 Troubleshooting Tips
 - Riot API error? Verify your API key is valid and not expired
 - Commands unresponsive? Check the bot log at `Log/info.log`
 - Google Sheets integration not working? Verify service account setup
 - Match display issues? Check that teams were properly created with `/run_matchmaking`
 - Database locked errors? Restart the bot to clear any hanging connections
+- Discord permission issues? Ensure the bot has proper permissions in the server
 
 ---
 
@@ -223,6 +318,11 @@ The bot uses SQLite with the following main tables:
 ### Planned Improvements
 - Improve image generation with more customization options
 - Expand Google Sheets integration for match results
+- Add tournament bracket management
+- Implement historical player performance tracking
+- Create a web dashboard for tournament management
+- Support for multiple games beyond League of Legends
+- Automated match result verification
 
 ---
 
