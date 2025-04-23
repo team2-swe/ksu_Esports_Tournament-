@@ -53,6 +53,14 @@ This document provides a comprehensive overview of all tests in the KSU Esports 
 | `test_get_all_player` | Test fetching all players | Get all registered players | Returns list of all players | Returns list of all players | Pass | |
 | `test_get_role_preference` | Test role preference | Get player's role preferences | Returns correct role preferences | Returns correct role preferences | Pass | |
 | `test_get_player_tier` | Test tier retrieval | Get player's tier | Returns correct tier | Returns correct tier | Pass | |
+| `test_calculate_manual_tier` | Test tier calculation | Calculate manual tier based on tier/rank | Returns correct manual tier value | Returns correct manual tier value | Pass | Tests various tier/rank combinations |
+| `test_player_find_by_name` | Test player lookup by name | Find player by game name | Returns correct player ID | Returns correct player ID | Pass | Case insensitive search |
+| `test_player_toxicity_points` | Test toxicity tracking | Add and retrieve toxicity points | Toxicity points updated and retrieved correctly | Toxicity points updated and retrieved correctly | Pass | |
+| `test_fetch_by_id` | Test fetching player by ID | Fetch player data by ID | Returns correct player data | Returns correct player data | Pass | |
+| `test_isMemberExist` | Test member existence check | Check if member exists in DB | Returns true if member exists | Returns true if member exists | Pass | |
+| `test_game_update_player_tier` | Test tier update | Update player's tier | Tier updated successfully | Tier updated successfully | Pass | |
+| `test_mvp_votes_basic_operations` | Test MVP voting | Record and count MVP votes | Votes recorded and counted correctly | Votes recorded and counted correctly | Pass | |
+| `test_matches_get_next_match_id` | Test match ID generation | Get sequential match IDs | Returns sequential IDs | Returns sequential IDs | Pass | Tests the enhanced ID generation system |
 
 ## Unit Tests - API
 
@@ -162,9 +170,9 @@ pytest --cov=.
 ## Test Coverage Summary
 
 Current test coverage:
-- Overall: ~75%
+- Overall: ~78%
 - Controller modules: ~80% 
-- Model modules: ~85%
+- Model modules: ~90%
 - Common utilities: ~75%
 - Discord Events: ~70%
 - Commands: ~80%
@@ -176,6 +184,9 @@ Areas with improved coverage:
 - Team management
 - Toxicity tracking
 - Import/Export functionality
+- Database model (dbc_model.py)
+- Match ID generation
+- MVP voting system
 
 Areas still needing improved coverage:
 - View modules
