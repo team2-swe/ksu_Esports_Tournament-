@@ -266,6 +266,7 @@ class MatchmakingController(commands.Cog):
             try:
                 # Get all eligible players
                 db = Tournament_DB()
+                
                 all_players = []
 
                 try:

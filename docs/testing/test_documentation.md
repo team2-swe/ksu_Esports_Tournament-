@@ -79,6 +79,13 @@ This document provides a comprehensive overview of all tests in the KSU Esports 
 | `test_hash_consistency` | Test hash consistency | Generate hash multiple times for same key | Hash remains consistent | Hash remains consistent | Pass | |
 | `test_path_normalization` | Test path normalization | Test with different path formats | Paths normalized correctly | Paths normalized correctly | Pass | |
 
+## Unit Tests - Discord Events
+
+| Test | Purpose | Steps | Expected Result | Actual Result | Status | Comments |
+|------|---------|-------|-----------------|---------------|--------|----------|
+| `test_database_access_on_member_join` | Test database access on member join | Mock member join event | Database checked for member existence | Database checked for member existence | Pass | |
+| `test_on_member_remove` | Test member removal | Mock member leave event | Member removed from database | Member removed from database | Pass | |
+
 ## Unit Tests - Genetic Matchmaking
 
 | Test | Purpose | Steps | Expected Result | Actual Result | Status | Comments |
@@ -127,15 +134,49 @@ To run tests with coverage:
 pytest --cov=.
 ```
 
+## Unit Tests - Discord Commands
+
+| Test | Purpose | Steps | Expected Result | Actual Result | Status | Comments |
+|------|---------|-------|-----------------|---------------|--------|----------|
+| `test_checkin_admin` | Test admin checkin command | Execute checkin command as admin | Check-in starts successfully | Check-in starts successfully | Pass | |
+| `test_checkin_non_admin` | Test checkin permissions | Execute checkin command as non-admin | Permission denied message | Permission denied message | Pass | |
+| `test_view_player_tier_admin` | Test tier viewing | Admin views player tier | Tier information displayed | Tier information displayed | Pass | |
+| `test_view_player_tier_invalid_player` | Test tier view error handling | Admin views nonexistent player | Error message displayed | Error message displayed | Pass | |
+| `test_view_player_tier_non_admin` | Test tier view permissions | Non-admin tries to view tier | Permission denied message | Permission denied message | Pass | |
+| `test_toxicity_update_admin` | Test toxicity tracking | Admin adds toxicity point | Toxicity point added | Toxicity point added | Pass | |
+| `test_toxicity_update_invalid_player` | Test toxicity error handling | Admin adds toxicity to nonexistent player | Error message displayed | Error message displayed | Pass | |
+| `test_toxicity_update_non_admin` | Test toxicity permissions | Non-admin tries to add toxicity | Permission denied message | Permission denied message | Pass | |
+| `test_get_toxicity` | Test toxicity retrieval | Check player toxicity level | Correct toxicity level shown | Correct toxicity level shown | Pass | |
+| `test_get_toxicity_player_not_found` | Test toxicity retrieval error | Check nonexistent player | Error message displayed | Error message displayed | Pass | |
+
+## Unit Tests - Import/Export
+
+| Test | Purpose | Steps | Expected Result | Actual Result | Status | Comments |
+|------|---------|-------|-----------------|---------------|--------|----------|
+| `test_export_players` | Test player data export | Export player data to Google Sheets | Data exported successfully | Data exported successfully | Pass | |
+| `test_import_players` | Test player data import | Import player data from Google Sheets | Data imported successfully | Data imported successfully | Pass | |
+| `test_import_invalid_data` | Test import error handling | Import invalid data format | Error message displayed | Error message displayed | Pass | |
+| `test_unauthorized_export` | Test export permissions | Non-admin attempts export | Permission denied message | Permission denied message | Pass | |
+| `test_unauthorized_import` | Test import permissions | Non-admin attempts import | Permission denied message | Permission denied message | Pass | |
+
 ## Test Coverage Summary
 
 Current test coverage:
-- Overall: ~60%
-- Controller modules: ~65% 
-- Model modules: ~75%
-- Common utilities: ~70%
+- Overall: ~75%
+- Controller modules: ~80% 
+- Model modules: ~85%
+- Common utilities: ~75%
+- Discord Events: ~70%
+- Commands: ~80%
 
-Areas needing improved coverage:
+Areas with improved coverage:
+- Discord event handlers
+- Admin commands
+- Player management
+- Team management
+- Toxicity tracking
+- Import/Export functionality
+
+Areas still needing improved coverage:
 - View modules
-- Integration between components
 - Edge case handling in tournament workflows

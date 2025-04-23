@@ -491,18 +491,33 @@ class Matches(Tournament_DB):
     def get_next_match_id(self):
         """Get the next sequential match ID (ignoring SQLite's autoincrement behavior)"""
         try:
-            # Get and increment our custom counter
-            self.cursor.execute("UPDATE Counters SET value = value + 1 WHERE name = 'match_counter'")
-            self.cursor.execute("SELECT value FROM Counters WHERE name = 'match_counter'")
-            result = self.cursor.fetchone()
-            self.connection.commit()
-            
-            if result and result[0]:
-                return result[0]
-            return 1
+            # Use a transaction to avoid database locks
+            with self.connection:  # This automatically manages the transaction
+                # First check what's the highest match_id already used 
+                self.cursor.execute("SELECT MAX(CAST(REPLACE(teamId, 'match_', '') AS INTEGER)) FROM Matches WHERE teamId LIKE 'match_%'")
+                result = self.cursor.fetchone()
+                highest_match = result[0] if result and result[0] is not None else 0
+                
+                # Get the current counter value
+                self.cursor.execute("SELECT value FROM Counters WHERE name = 'match_counter'")
+                result = self.cursor.fetchone()
+                counter_value = result[0] if result and result[0] is not None else 0
+                
+                # Use the higher of the two values
+                next_id = max(counter_value, highest_match) + 1
+                
+                # Update the counter to the next ID in the same transaction
+                self.cursor.execute("UPDATE Counters SET value = ? WHERE name = 'match_counter'", (next_id,))
+                
+                # No need to call commit() explicitly - the 'with' block handles it
+                return next_id
+                
         except Exception as ex:
             logger.error(f"get_next_match_id failed with error {ex}")
-            return 1
+            
+            # As a fallback, just return a random high number to avoid conflicts
+            import random
+            return random.randint(1000, 10000)
         
 class MVP_Votes(Tournament_DB):
     

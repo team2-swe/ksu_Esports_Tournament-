@@ -169,22 +169,26 @@ class TeamDisplayController(commands.Cog):
                     db.close_db()
                     return
                 
-                # Get team 1 players
+                # Get the MOST RECENT match_num for this match_id
+                db.cursor.execute("SELECT MAX(match_num) FROM Matches WHERE teamId = ?", (match_id,))
+                match_num = db.cursor.fetchone()[0]
+                
+                # Get exactly 5 players for team 1
+                team1_players = []
                 db.cursor.execute("""
-                    SELECT m.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier
+                    SELECT p.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier, g.wins, g.losses, g.wr
                     FROM Matches m
                     JOIN player p ON m.user_id = p.user_id
                     LEFT JOIN (
-                        SELECT user_id, tier, rank, role, manual_tier, MAX(game_date) as max_date
+                        SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
                         FROM game
                         GROUP BY user_id
                     ) g ON m.user_id = g.user_id
-                    WHERE m.teamId = ? AND m.teamUp = 'team1'
-                """, (match_id,))
+                    WHERE m.teamId = ? AND m.teamUp = 'team1' AND m.match_num = ?
+                """, (match_id, match_num))
                 
-                team1_players = []
                 for record in db.cursor.fetchall():
-                    user_id, game_name, tier, rank, role_json, manual_tier = record
+                    user_id, game_name, tier, rank, role_json, manual_tier, wins, losses, wr = record
                     
                     # Parse role preferences
                     roles = []
@@ -202,26 +206,29 @@ class TeamDisplayController(commands.Cog):
                         'tier': tier.lower() if tier else 'default',
                         'rank': rank if rank else '',
                         'role': roles,
-                        'manual_tier': manual_tier
+                        'manual_tier': manual_tier,
+                        'wins': wins if wins is not None else 0,
+                        'losses': losses if losses is not None else 0,
+                        'wr': float(wr) * 100 if wr is not None else 50.0
                     }
                     team1_players.append(player)
                 
-                # Get team 2 players
+                # Get exactly 5 players for team 2
+                team2_players = []
                 db.cursor.execute("""
-                    SELECT m.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier
+                    SELECT p.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier, g.wins, g.losses, g.wr
                     FROM Matches m
                     JOIN player p ON m.user_id = p.user_id
                     LEFT JOIN (
-                        SELECT user_id, tier, rank, role, manual_tier, MAX(game_date) as max_date
+                        SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
                         FROM game
                         GROUP BY user_id
                     ) g ON m.user_id = g.user_id
-                    WHERE m.teamId = ? AND m.teamUp = 'team2'
-                """, (match_id,))
+                    WHERE m.teamId = ? AND m.teamUp = 'team2' AND m.match_num = ?
+                """, (match_id, match_num))
                 
-                team2_players = []
                 for record in db.cursor.fetchall():
-                    user_id, game_name, tier, rank, role_json, manual_tier = record
+                    user_id, game_name, tier, rank, role_json, manual_tier, wins, losses, wr = record
                     
                     # Parse role preferences
                     roles = []
@@ -239,7 +246,10 @@ class TeamDisplayController(commands.Cog):
                         'tier': tier.lower() if tier else 'default',
                         'rank': rank if rank else '',
                         'role': roles,
-                        'manual_tier': manual_tier
+                        'manual_tier': manual_tier,
+                        'wins': wins if wins is not None else 0,
+                        'losses': losses if losses is not None else 0,
+                        'wr': float(wr) * 100 if wr is not None else 50.0
                     }
                     team2_players.append(player)
                 
@@ -251,11 +261,154 @@ class TeamDisplayController(commands.Cog):
                     )
                     return
                 
-                # Create embeds for the teams
-                team_embeds = self.create_team_embeds(match_id, team1_players, team2_players)
+                # Process the teams for role assignment
+                from controller.genetic_match_making import GeneticMatchMaking
+                matchmaker = GeneticMatchMaking()
+                
+                # Calculate performance metrics for each player
+                team1_players = await matchmaker.calculate_performance(team1_players)
+                team2_players = await matchmaker.calculate_performance(team2_players)
+                
+                # Directly mimic what matchmaking does - assign roles to all players in each team
+                team1_players = matchmaker.assign_team_roles(team1_players)
+                team2_players = matchmaker.assign_team_roles(team2_players)
+                
+                # Calculate role matchup score for display
+                role_matchup_score = matchmaker.calculate_role_matchup_score(team1_players, team2_players)
+                role_matchup_percent = round(role_matchup_score * 100)
+                
+                # Count how many games we have total with this match_id
+                game_count = 1  # Assume at least one game
+                
+                # Create embeds for the teams - format like in matchmaking_controller
+                team1_embed = discord.Embed(
+                    title=f"Team 1 (Match ID: {match_id})",
+                    color=discord.Color.blue(),
+                    description=f"Role Matchup Balance: {role_matchup_percent}%"
+                )
+                
+                team2_embed = discord.Embed(
+                    title=f"Team 2 (Match ID: {match_id})",
+                    color=discord.Color.red(),
+                    description=f"Role Matchup Balance: {role_matchup_percent}%"
+                )
+                
+                # Role color mapping (using League of Legends colors)
+                role_colors = {
+                    "top": "🟥",      # Red
+                    "jungle": "🟩",   # Green
+                    "mid": "🟨",      # Yellow
+                    "bottom": "🟦",   # Blue
+                    "support": "🟪",  # Purple
+                    "tbd": "⬜",      # White/empty
+                    "forced": "⬛"     # Black/forced
+                }
+                
+                # Add players to embeds
+                for i, player in enumerate(team1_players):
+                    name = player.get('game_name', player.get('user_id', 'Unknown'))
+                    tier = player.get('tier', 'Unknown').capitalize()
+                    rank = player.get('rank', '')
+                    roles = player.get('role', [])
+                    
+                    # Format roles with colors
+                    colored_roles = []
+                    for role in roles:
+                        role_lower = role.lower()
+                        role_emoji = role_colors.get(role_lower, "⬜")
+                        colored_roles.append(f"{role_emoji} {role.capitalize()}")
+                    
+                    role_str = '  '.join(colored_roles) if colored_roles else 'None'
+                    
+                    # Use the assigned_role from genetic algorithm if available
+                    if "assigned_role" in player:
+                        assigned_role = player["assigned_role"]
+                    else:
+                        # Fallback to first role preference
+                        assigned_role = roles[0] if roles else "TBD"
+                        logger.warning(f"Player {name} missing assigned_role, using first preference")
+                    
+                    assigned_role_lower = assigned_role.lower()
+                    assigned_emoji = role_colors.get(assigned_role_lower, role_colors["tbd"])
+                    colored_assigned = f"{assigned_emoji} {assigned_role.capitalize()}"
+                    
+                    team1_embed.add_field(
+                        name=f"Player {i + 1}: {name}",
+                        value=f"**Rank:** {tier} {rank}\n**Roles:** {role_str}\n**Assigned:** {colored_assigned}",
+                        inline=True
+                    )
+                
+                for i, player in enumerate(team2_players):
+                    name = player.get('game_name', player.get('user_id', 'Unknown'))
+                    tier = player.get('tier', 'Unknown').capitalize()
+                    rank = player.get('rank', '')
+                    roles = player.get('role', [])
+                    
+                    # Format roles with colors
+                    colored_roles = []
+                    for role in roles:
+                        role_lower = role.lower()
+                        role_emoji = role_colors.get(role_lower, "⬜")
+                        colored_roles.append(f"{role_emoji} {role.capitalize()}")
+                    
+                    role_str = '  '.join(colored_roles) if colored_roles else 'None'
+                    
+                    # Use the assigned_role from genetic algorithm if available
+                    if "assigned_role" in player:
+                        assigned_role = player["assigned_role"]
+                    else:
+                        # Fallback to first role preference
+                        assigned_role = roles[0] if roles else "TBD"
+                        logger.warning(f"Player {name} missing assigned_role, using first preference")
+                    
+                    assigned_role_lower = assigned_role.lower()
+                    assigned_emoji = role_colors.get(assigned_role_lower, role_colors["tbd"])
+                    colored_assigned = f"{assigned_emoji} {assigned_role.capitalize()}"
+                    
+                    team2_embed.add_field(
+                        name=f"Player {i + 1}: {name}",
+                        value=f"**Rank:** {tier} {rank}\n**Roles:** {role_str}\n**Assigned:** {colored_assigned}",
+                        inline=True
+                    )
+                
+                # Calculate team metrics
+                team1_perf = matchmaker.team_performance(team1_players)
+                team2_perf = matchmaker.team_performance(team2_players)
+                
+                # Add metrics to embeds
+                team1_embed.set_footer(text=f"Team 1 Performance: {team1_perf:.2f}")
+                team2_embed.set_footer(text=f"Team 2 Performance: {team2_perf:.2f}")
+                
+                team_embeds = [team1_embed, team2_embed]
                 
                 # Create role matchup comparison
-                role_matchup_text = self.create_role_matchup_text(team1_players, team2_players)
+                # Create role matchup comparison
+                standard_roles = ["top", "jungle", "mid", "bottom", "support"]
+                role_matchup_text = "**Role Matchups:**\n"
+                
+                # Get role emoji mapping
+                role_emoji_map = {
+                    "top": "🟥 Top",
+                    "jungle": "🟩 Jungle",
+                    "mid": "🟨 Mid", 
+                    "bottom": "🟦 Bottom",
+                    "support": "🟪 Support"
+                }
+                
+                for role in standard_roles:
+                    team1_player = next((p for p in team1_players if p.get("assigned_role") == role), None)
+                    team2_player = next((p for p in team2_players if p.get("assigned_role") == role), None)
+                    
+                    if team1_player and team2_player:
+                        team1_name = team1_player.get('game_name', 'Unknown')
+                        team2_name = team2_player.get('game_name', 'Unknown')
+                        team1_tier = team1_player.get('tier', 'default').capitalize()
+                        team2_tier = team2_player.get('tier', 'default').capitalize()
+                        team1_rank = team1_player.get('rank', '')
+                        team2_rank = team2_player.get('rank', '')
+                        
+                        role_display = role_emoji_map.get(role, role.capitalize())
+                        role_matchup_text += f"{role_display}: {team1_name} ({team1_tier} {team1_rank}) vs {team2_name} ({team2_tier} {team2_rank})\n"
                 
                 # Send the team display
                 await interaction.followup.send(
@@ -290,22 +443,31 @@ class TeamDisplayController(commands.Cog):
             # Get team data from the database
             db = Tournament_DB()
             
+            # Get the MOST RECENT match_num for this match_id
+            db.cursor.execute("SELECT MAX(match_num) FROM Matches WHERE teamId = ?", (match_id,))
+            match_num = db.cursor.fetchone()[0]
+            
+            if not match_num:
+                await interaction.followup.send(f"Match ID '{match_id}' not found or has no valid match number.")
+                db.close_db()
+                return
+                
             # Get team 1 players
             db.cursor.execute("""
-                SELECT m.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier
+                SELECT m.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier, g.wins, g.losses, g.wr
                 FROM Matches m
                 JOIN player p ON m.user_id = p.user_id
                 LEFT JOIN (
-                    SELECT user_id, tier, rank, role, manual_tier, MAX(game_date) as max_date
+                    SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
                     FROM game
                     GROUP BY user_id
                 ) g ON m.user_id = g.user_id
-                WHERE m.teamId = ? AND m.teamUp = 'team1'
-            """, (match_id,))
+                WHERE m.teamId = ? AND m.teamUp = 'team1' AND m.match_num = ?
+            """, (match_id, match_num))
             
             team1_players = []
             for record in db.cursor.fetchall():
-                user_id, game_name, tier, rank, role_json, manual_tier = record
+                user_id, game_name, tier, rank, role_json, manual_tier, wins, losses, wr = record
                 
                 # Parse role preferences
                 roles = []
@@ -323,26 +485,29 @@ class TeamDisplayController(commands.Cog):
                     'tier': tier.lower() if tier else 'default',
                     'rank': rank if rank else '',
                     'role': roles,
-                    'manual_tier': manual_tier
+                    'manual_tier': manual_tier,
+                    'wins': wins if wins is not None else 0,
+                    'losses': losses if losses is not None else 0,
+                    'wr': float(wr) * 100 if wr is not None else 50.0
                 }
                 team1_players.append(player)
             
             # Get team 2 players
             db.cursor.execute("""
-                SELECT m.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier
+                SELECT m.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier, g.wins, g.losses, g.wr
                 FROM Matches m
                 JOIN player p ON m.user_id = p.user_id
                 LEFT JOIN (
-                    SELECT user_id, tier, rank, role, manual_tier, MAX(game_date) as max_date
+                    SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
                     FROM game
                     GROUP BY user_id
                 ) g ON m.user_id = g.user_id
-                WHERE m.teamId = ? AND m.teamUp = 'team2'
-            """, (match_id,))
+                WHERE m.teamId = ? AND m.teamUp = 'team2' AND m.match_num = ?
+            """, (match_id, match_num))
             
             team2_players = []
             for record in db.cursor.fetchall():
-                user_id, game_name, tier, rank, role_json, manual_tier = record
+                user_id, game_name, tier, rank, role_json, manual_tier, wins, losses, wr = record
                 
                 # Parse role preferences
                 roles = []
@@ -360,7 +525,10 @@ class TeamDisplayController(commands.Cog):
                     'tier': tier.lower() if tier else 'default',
                     'rank': rank if rank else '',
                     'role': roles,
-                    'manual_tier': manual_tier
+                    'manual_tier': manual_tier,
+                    'wins': wins if wins is not None else 0,
+                    'losses': losses if losses is not None else 0,
+                    'wr': float(wr) * 100 if wr is not None else 50.0
                 }
                 team2_players.append(player)
             
@@ -372,8 +540,24 @@ class TeamDisplayController(commands.Cog):
                 )
                 return
             
+            # Process the teams for role assignment
+            from controller.genetic_match_making import GeneticMatchMaking
+            matchmaker = GeneticMatchMaking()
+            
+            # Calculate performance metrics for each player
+            team1_players = await matchmaker.calculate_performance(team1_players)
+            team2_players = await matchmaker.calculate_performance(team2_players)
+            
+            # Assign optimal roles to each team (this adds the assigned_role attribute)
+            team1_players = matchmaker.assign_team_roles(team1_players)
+            team2_players = matchmaker.assign_team_roles(team2_players)
+            
+            # Calculate role matchup score for display
+            role_matchup_score = matchmaker.calculate_role_matchup_score(team1_players, team2_players)
+            role_matchup_percent = round(role_matchup_score * 100)
+            
             # Create embeds for the teams
-            team_embeds = self.create_team_embeds(match_id, team1_players, team2_players)
+            team_embeds = self.create_team_embeds(match_id, team1_players, team2_players, role_matchup_percent)
             
             # Create role matchup comparison
             role_matchup_text = self.create_role_matchup_text(team1_players, team2_players)
@@ -530,23 +714,36 @@ class TeamDisplayController(commands.Cog):
                 db.close_db()
                 return
             
+            # Get the MOST RECENT match_num for this match_id
+            db.cursor.execute("""
+                SELECT MAX(match_num) FROM Matches WHERE teamId = ?
+            """, (match_id,))
+            match_num_record = db.cursor.fetchone()
+            
+            if not match_num_record:
+                await interaction.followup.send(f"Match ID '{match_id}' does not have a valid match number.")
+                db.close_db()
+                return
+                
+            match_num = match_num_record[0]
+            
             # Get team 1 players
             db.cursor.execute("""
-                SELECT m.user_id, p.game_name, g.tier, g.rank, g.role
+                SELECT m.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier, g.wins, g.losses, g.wr
                 FROM Matches m
                 JOIN player p ON m.user_id = p.user_id
                 LEFT JOIN (
-                    SELECT user_id, tier, rank, role, MAX(game_date) as max_date
+                    SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
                     FROM game
                     GROUP BY user_id
                 ) g ON m.user_id = g.user_id
-                WHERE m.teamId = ? AND m.teamUp = 'team1'
-            """, (match_id,))
+                WHERE m.teamId = ? AND m.teamUp = 'team1' AND m.match_num = ?
+            """, (match_id, match_num))
             
             team1_players = []
             team1_user_ids = []
             for record in db.cursor.fetchall():
-                user_id, game_name, tier, rank, role_json = record
+                user_id, game_name, tier, rank, role_json, manual_tier, wins, losses, wr = record
                 team1_user_ids.append(user_id)
                 
                 # Parse role preferences
@@ -564,27 +761,31 @@ class TeamDisplayController(commands.Cog):
                     'game_name': game_name,
                     'tier': tier.lower() if tier else 'default',
                     'rank': rank if rank else '',
-                    'role': roles
+                    'role': roles,
+                    'manual_tier': manual_tier,
+                    'wins': wins if wins is not None else 0,
+                    'losses': losses if losses is not None else 0,
+                    'wr': float(wr) * 100 if wr is not None else 50.0
                 }
                 team1_players.append(player)
             
             # Get team 2 players
             db.cursor.execute("""
-                SELECT m.user_id, p.game_name, g.tier, g.rank, g.role
+                SELECT m.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier, g.wins, g.losses, g.wr
                 FROM Matches m
                 JOIN player p ON m.user_id = p.user_id
                 LEFT JOIN (
-                    SELECT user_id, tier, rank, role, MAX(game_date) as max_date
+                    SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
                     FROM game
                     GROUP BY user_id
                 ) g ON m.user_id = g.user_id
-                WHERE m.teamId = ? AND m.teamUp = 'team2'
-            """, (match_id,))
+                WHERE m.teamId = ? AND m.teamUp = 'team2' AND m.match_num = ?
+            """, (match_id, match_num))
             
             team2_players = []
             team2_user_ids = []
             for record in db.cursor.fetchall():
-                user_id, game_name, tier, rank, role_json = record
+                user_id, game_name, tier, rank, role_json, manual_tier, wins, losses, wr = record
                 team2_user_ids.append(user_id)
                 
                 # Parse role preferences
@@ -602,7 +803,11 @@ class TeamDisplayController(commands.Cog):
                     'game_name': game_name,
                     'tier': tier.lower() if tier else 'default',
                     'rank': rank if rank else '',
-                    'role': roles
+                    'role': roles,
+                    'manual_tier': manual_tier,
+                    'wins': wins if wins is not None else 0,
+                    'losses': losses if losses is not None else 0,
+                    'wr': float(wr) * 100 if wr is not None else 50.0
                 }
                 team2_players.append(player)
             
@@ -614,8 +819,32 @@ class TeamDisplayController(commands.Cog):
                 )
                 return
             
+            # Process the teams for role assignment only if we have appropriate team sizes
+            from controller.genetic_match_making import GeneticMatchMaking
+            matchmaker = GeneticMatchMaking()
+            
+            # Calculate performance metrics for each player
+            team1_players = await matchmaker.calculate_performance(team1_players)
+            team2_players = await matchmaker.calculate_performance(team2_players)
+            
+            # Assign optimal roles to each team only if we have exactly 5 players per team
+            # The team_display logic has a limit of 5 players per team, so this should always work
+            if len(team1_players) == 5:
+                team1_players = matchmaker.assign_team_roles(team1_players)
+            else:
+                logger.warning(f"Team 1 for match {match_id} has {len(team1_players)} players instead of 5")
+                
+            if len(team2_players) == 5:
+                team2_players = matchmaker.assign_team_roles(team2_players)
+            else:
+                logger.warning(f"Team 2 for match {match_id} has {len(team2_players)} players instead of 5")
+            
+            # Calculate role matchup score for display
+            role_matchup_score = matchmaker.calculate_role_matchup_score(team1_players, team2_players)
+            role_matchup_percent = round(role_matchup_score * 100)
+            
             # Create embeds for the teams
-            team_embeds = self.create_team_embeds(match_id, team1_players, team2_players)
+            team_embeds = self.create_team_embeds(match_id, team1_players, team2_players, role_matchup_percent)
             
             # Create role matchup comparison
             role_matchup_text = self.create_role_matchup_text(team1_players, team2_players)
@@ -744,7 +973,7 @@ class TeamDisplayController(commands.Cog):
             logger.error(f"Error in announce_selected_match: {ex}")
             await interaction.followup.send(f"Error announcing teams: {str(ex)}")
     
-    def create_team_embeds(self, match_id, team1_players, team2_players):
+    def create_team_embeds(self, match_id, team1_players, team2_players, role_matchup_percent=None):
         """
         Create Discord embeds for team displays
         
@@ -752,6 +981,7 @@ class TeamDisplayController(commands.Cog):
             match_id: The match ID
             team1_players: List of player dictionaries for team 1
             team2_players: List of player dictionaries for team 2
+            role_matchup_percent: Optional percentage showing role matchup balance
             
         Returns:
             list: List of embeds for team 1 and team 2
@@ -780,9 +1010,14 @@ class TeamDisplayController(commands.Cog):
             team2_players = matchmaker.assign_team_roles(team2_players)
         
         # Create team 1 embed
+        description = ""
+        if role_matchup_percent is not None:
+            description = f"Role Matchup Balance: {role_matchup_percent}%"
+            
         team1_embed = discord.Embed(
             title=f"Team 1 (Match ID: {match_id})",
-            color=discord.Color.blue()
+            color=discord.Color.blue(),
+            description=description
         )
         
         # Add team 1 players
@@ -825,7 +1060,8 @@ class TeamDisplayController(commands.Cog):
         # Create team 2 embed
         team2_embed = discord.Embed(
             title=f"Team 2 (Match ID: {match_id})",
-            color=discord.Color.red()
+            color=discord.Color.red(),
+            description=description
         )
         
         # Add team 2 players
