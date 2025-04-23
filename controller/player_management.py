@@ -10,6 +10,34 @@ from controller.api import Api_Collection
 
 logger = settings.logging.getLogger("discord")
 
+class PlayerModel:
+    @staticmethod
+    def update_toxicity(interaction, player_name):
+        """
+        Add a toxicity point to the specified player.
+        
+        Args:
+            interaction: The Discord interaction object
+            player_name: The name of the player to add toxicity to
+            
+        Returns:
+            bool: True if player was found and updated, False otherwise
+        """
+        try:
+            db = Player()
+            player_id = db.find_player_by_name(player_name)
+            
+            if player_id:
+                new_points = db.add_toxicity_point(player_id)
+                db.close_db()
+                return True
+            
+            db.close_db()
+            return False
+        except Exception as ex:
+            logger.error(f"update_toxicity failed with error {ex}")
+            return False
+
 class PlayerManagement(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -587,6 +615,46 @@ class PlayerManagement(commands.Cog):
             await interaction.response.send_message("Sorry, you don't have required permission to use this command",
                                                  ephemeral=True)
 
+
+    # This will add toxicity points to the player the admin chooses
+    @app_commands.command(name="toxicity", description="Add 1 point to the player's toxicity level")
+    @app_commands.describe(player="The player to add toxicity to")
+    async def toxicity(self, interaction: discord.Interaction, player: str):
+        # Check if the player is an admin and end if not
+        if interaction.user.guild_permissions.administrator:
+            try:
+                # Call the method to update the database and check if it returns a success
+                found_user = PlayerModel.update_toxicity(interaction, player.lower())
+                if found_user:
+                    await interaction.response.send_message(f"{player}'s toxicity point has been updated.", ephemeral=True)
+                else:
+                    await interaction.response.send_message(f"{player}, this username could not be found.", ephemeral=True)
+
+            except Exception as e:
+                logger.error(f'Toxicity command error: {e}')
+                await interaction.response.send_message("An error occurred while processing your request.", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ This command is only for administrators.", ephemeral=True)
+            return
+
+    # Get a player's toxicity points
+    @app_commands.command(name="get_toxicity", description="Get a player's current toxicity points")
+    @app_commands.describe(player="The player to check")
+    async def get_toxicity(self, interaction: discord.Interaction, player: str):
+        try:
+            db = Player()
+            player_id = db.find_player_by_name(player.lower())
+            
+            if player_id:
+                points = db.get_toxicity_points(player_id)
+                db.close_db()
+                await interaction.response.send_message(f"{player} has {points} toxicity point(s).", ephemeral=True)
+            else:
+                db.close_db()
+                await interaction.response.send_message(f"{player}, this username could not be found.", ephemeral=True)
+        except Exception as e:
+            logger.error(f'Get toxicity command error: {e}')
+            await interaction.response.send_message("An error occurred while processing your request.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(PlayerManagement(bot))

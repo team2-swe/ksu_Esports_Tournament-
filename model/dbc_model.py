@@ -75,6 +75,7 @@ class Player(Tournament_DB):
             tag_id text text not null,
             isAdmin integer not null default 0,
             mvp_count integer not null default 0,
+            toxicity_points integer not null default 0,
             last_modified text default (datetime('now'))
         )
         """
@@ -209,6 +210,56 @@ class Player(Tournament_DB):
         except Exception as ex:
             logger.error(f"get_mvp_count failed with error {ex}")
             return 0
+            
+    def add_toxicity_point(self, player_id):
+        """Add a toxicity point to a player"""
+        try:
+            # Get current toxicity points
+            query = "SELECT toxicity_points FROM player WHERE user_id = ?"
+            self.cursor.execute(query, (player_id,))
+            result = self.cursor.fetchone()
+            
+            if result:
+                current_points = result[0] if result[0] is not None else 0
+                new_points = current_points + 1
+                
+                # Update the toxicity points
+                update_query = "UPDATE player SET toxicity_points = ? WHERE user_id = ?"
+                self.cursor.execute(update_query, (new_points, player_id))
+                self.connection.commit()
+                return new_points
+            return None
+        except Exception as ex:
+            logger.error(f"add_toxicity_point failed with error {ex}")
+            return None
+            
+    def get_toxicity_points(self, player_id):
+        """Get the current toxicity points for a player"""
+        try:
+            query = "SELECT toxicity_points FROM player WHERE user_id = ?"
+            self.cursor.execute(query, (player_id,))
+            result = self.cursor.fetchone()
+            
+            if result:
+                return result[0] if result[0] is not None else 0
+            return 0
+        except Exception as ex:
+            logger.error(f"get_toxicity_points failed with error {ex}")
+            return 0
+            
+    def find_player_by_name(self, player_name):
+        """Find a player by their game name"""
+        try:
+            query = "SELECT user_id FROM player WHERE LOWER(game_name) = ?"
+            self.cursor.execute(query, (player_name.lower(),))
+            result = self.cursor.fetchone()
+            
+            if result:
+                return result[0]
+            return None
+        except Exception as ex:
+            logger.error(f"find_player_by_name failed with error {ex}")
+            return None
 
 class Game(Tournament_DB):
     
