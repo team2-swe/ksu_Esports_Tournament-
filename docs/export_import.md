@@ -62,6 +62,18 @@ The import functionality will match columns in your Google Sheet with database f
 - Other player columns: Any columns that match the `player` table in the database
 - Game info columns: Any columns that match the `playerGameDetail` table
 
+### Player Behavior Data
+
+The export/import system now includes player behavior tracking data:
+
+- `toxicity_points`: Number of recorded toxicity incidents for a player
+- `mvp_count`: How many times a player has been voted MVP
+
+Administrators can use this data to:
+- Track player behavior across tournaments
+- Identify players with recurring toxicity issues
+- Recognize consistently positive players with high MVP counts
+
 ### How It Works
 
 The import process:
