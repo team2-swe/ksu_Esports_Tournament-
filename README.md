@@ -411,6 +411,12 @@ All configuration is done through the `.env` file. The main options are:
   - **Fix**: Now using sequential match IDs to avoid conflicts
 - Google Sheets export occasionally times out with large player pools
   - **Workaround**: Export in smaller batches or use a more stable internet connection
+- "NOT NULL constraint failed: game.game_name" error
+  - **Fix**: Game object instantiation corrected to properly handle game_name in API controller
+- Missing setup function in test controllers
+  - **Fix**: All controller files now include proper setup functions
+- Typos in log messages ("tage_id" and "puui")
+  - **Fix**: Corrected typos in API controller for clearer log messages
 
 ### Undeveloped Features
 - Match history tracking and statistics over time
