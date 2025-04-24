@@ -63,18 +63,31 @@ cd ksu_Esports_Tournament
 ```
 
 ### 2. Environment Configuration
-- Create a `.env` file with the following fields:
+- Copy the provided `.env.template` file to a new file named `.env`:
+```bash
+cp .env.template .env
 ```
+- Then edit the `.env` file to fill in your specific values:
+```
+# Discord Configuration
 DISCORD_APITOKEN=your_discord_bot_token
 DISCORD_GUILD=your_discord_server_id
+
+# Database Configuration
 DATABASE_NAME=tournament.db
+
+# Channel IDs
 TOURNAMENT_CH=your_tournament_channel_id
 FEEDBACK_CH=your_feedback_channel_id
-CHANNEL_CONFIG=comma,separated,channel,names
+CHANNEL_CONFIG=announcements,registration,team-info,results,admin
 CHANNEL_PLAYER=player_channel_id
 PRIVATE_CH=private_channel_id
+
+# Riot Games API
 API_KEY=your_riot_api_key
 API_URL=https://api.riotgames.com
+
+# Google Sheets Integration (Optional)
 GOOGLE_SHEET_ID=your_google_sheet_id
 CELL_RANGE=Sheet1
 LOL_SERVICE_PATH=service_account.json
