@@ -67,31 +67,47 @@ cd ksu_Esports_Tournament
 ```bash
 cp .env.template .env
 ```
-- Then edit the `.env` file to fill in your specific values:
+- Then edit the `.env` file to fill in your specific values.
+- The template includes all required fields with example values:
+
 ```
 # Discord Configuration
-DISCORD_APITOKEN=your_discord_bot_token
-DISCORD_GUILD=your_discord_server_id
+DISCORD_APITOKEN=your_discord_bot_token_here
+DISCORD_GUILD=your_discord_server_id_here
 
 # Database Configuration
 DATABASE_NAME=tournament.db
 
 # Channel IDs
-TOURNAMENT_CH=your_tournament_channel_id
-FEEDBACK_CH=your_feedback_channel_id
+TOURNAMENT_CH=tournament_general
+FEEDBACK_CH=feedback_channel
 CHANNEL_CONFIG=announcements,registration,team-info,results,admin
-CHANNEL_PLAYER=player_channel_id
-PRIVATE_CH=private_channel_id
+CHANNEL_PLAYER=t_announcement
+PRIVATE_CH=admin_channel
+
+# Webhook Configuration
+WEBHOOK_URL=your_webhook_url_here
 
 # Riot Games API
-API_KEY=your_riot_api_key
-API_URL=https://api.riotgames.com
+API_KEY=your_riot_api_key_here
+API_URL=https://na1.api.riotgames.com/lol
+RIOT_API_KEY=your_riot_api_key_here  # Can be the same as API_KEY
+
+# API Task Control (Optional)
+STOP_API_TASK=false
+START_API_TASK=true
+
+# OpenAI Configuration (Optional - for advanced team matchmaking)
+OPEN_AI_KEY=your_openai_api_key_here
+prompt="Your OpenAI prompt for team matchmaking here"
 
 # Google Sheets Integration (Optional)
-GOOGLE_SHEET_ID=your_google_sheet_id
+GOOGLE_SHEET_ID=your_google_sheet_id_here
 CELL_RANGE=Sheet1
-LOL_SERVICE_PATH=service_account.json
+LOL_SERVICE_PATH=./service_account.json
 ```
+
+> **Important:** The DISCORD_APITOKEN is sensitive information. Never commit your actual .env file to the repository.
 
 ### 3. Generate Discord Bot Token
 - Go to the [Discord Developer Portal](https://discord.com/developers/applications)
