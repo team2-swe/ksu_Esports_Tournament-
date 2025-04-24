@@ -58,8 +58,8 @@ ksu_Esports_Tournament/
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/your-org/ksu_Esports_Tournament.git
-cd ksu_Esports_Tournament
+git clone https://github.com/team2-swe/ksu_Esports_Tournament-.git
+cd ksu_Esports_Tournament-
 ```
 
 ### 2. Environment Configuration
