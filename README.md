@@ -81,7 +81,11 @@ DATABASE_NAME=tournament.db
 # Channel IDs
 TOURNAMENT_CH=tournament_general
 FEEDBACK_CH=feedback_channel
-CHANNEL_CONFIG=announcements,registration,team-info,results,admin
+# CHANNEL_CONFIG must be a valid JSON string with this structure:
+# Format: {"Category": {"channel_name": {"role_key": "RoleName"}, ...}}
+# Use actual role names that exist in your Discord server (like "Admin" or "Moderator")
+# You can use "@everyone" for the default role that everyone can see
+CHANNEL_CONFIG={"Tournament": {"announcements": {"admin": "Admin", "everyone": "@everyone"}, "registration": {"everyone": "@everyone"}, "team-info": {"everyone": "@everyone"}, "results": {"everyone": "@everyone"}, "admin": {"admin": "Admin"}}}
 CHANNEL_PLAYER=t_announcement
 PRIVATE_CH=admin_channel
 

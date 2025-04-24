@@ -59,7 +59,30 @@ class Details_Cached:
         if isChannelCreated:
             cachedChListsDic[str(guild.id)] = []
             
-            channel_config = json.loads(ch_config)
+            try:
+                # Try to parse as JSON first
+                channel_config = json.loads(ch_config)
+            except (json.JSONDecodeError, TypeError):
+                # If JSON parsing fails, provide a default channel configuration
+                logger.warning(f"Failed to parse CHANNEL_CONFIG as JSON. Using default configuration.")
+                # Try to find an admin role in the guild
+                admin_roles = ["Admin", "Administrator", "Mod", "Moderator"]
+                admin_role_name = "Admin"  # Default
+                for role_name in admin_roles:
+                    if discord.utils.get(guild.roles, name=role_name):
+                        admin_role_name = role_name
+                        break
+                
+                # Use found admin role or create configuration with just @everyone
+                channel_config = {
+                    "Tournament": {
+                        "announcements": {"admin": admin_role_name, "everyone": "@everyone"},
+                        "registration": {"everyone": "@everyone"},
+                        "team-info": {"everyone": "@everyone"},
+                        "results": {"everyone": "@everyone"},
+                        "admin": {"admin": admin_role_name}
+                    }
+                }
 
             for category_name, channelList in channel_config.items():
                 category = discord.utils.get(guild.categories, name=category_name)
@@ -88,7 +111,14 @@ class Details_Cached:
                 
                             for key, role_name in roles.items():
                                 discord_role = discord.utils.get(guild.roles, name=role_name)
-                                await channel.set_permissions(discord_role, read_messages=True)
+                                # Check if role exists before setting permissions
+                                if discord_role:
+                                    await channel.set_permissions(discord_role, read_messages=True)
+                                elif role_name == "@everyone":
+                                    # Handle @everyone role specially
+                                    await channel.set_permissions(guild.default_role, read_messages=True)
+                                else:
+                                    logger.warning(f"Role '{role_name}' not found in guild '{guild.name}'. Creating default permissions.")
 
         
             Details_Cached.save_cache(cachedChListsDic)
