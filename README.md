@@ -149,23 +149,20 @@ If successful, the terminal will display: `Logged into server as [BotName]`
 
 ##  Command Overview
 
-| Command | Description |
-|---------|-------------|
-| `/display_teams [match_id]` | Shows teams for a specific match with role assignments |
-| `/announce_teams [channel] [format]` | Announces teams to a channel as text or image |
+| Command                                                  | Description |
+|----------------------------------------------------------|-------------|
+| `/display_teams [match_id]`                              | Shows teams for a specific match with role assignments |
+| `/announce_teams [channel] [format]`                     | Announces teams to a channel as text or image |
 | `/run_matchmaking [players_per_game] [selection_method]` | Generates balanced teams using genetic algorithm |
-| `/export_players [custom_name]` | Exports player data to Google Sheets |
-| `/import_players [sheet_name]` | Imports player data from Google Sheets |
-| `/simulate_volunteers [count]` | Simulates volunteers for sitting out |
-| `/record_match_result [match_id] [winning_team]` | Record match results |
-| `/giveaway [prize] [entries]` | Runs a giveaway raffle |
-| `/lookup [tag]` | Look up player by tag |
-| `/player_details [user]` | Shows player details |
-| `/register [gamename] [tag]` | Register a player |
-| `/pref [role1] [role2] [role3] [role4] [role5]` | Set role preferences |
-| `/role` | Updates role preferences |
-| `/stats [user]` | View detailed player stats and rank |
-| `/help` | Display help information |
+| `/export_players [custom_name]`                          | Exports player data to Google Sheets |
+| `/import_players [sheet_name]`                           | Imports player data from Google Sheets |
+| `/simulate_volunteers [count]`                           | Simulates volunteers for sitting out |
+| `/record_match_result [match_id] [winning_team]`         | Record match results |
+| `/player_match_history [user]`                           | Shows player details |
+| `/pref [role1] [role2] [role3] [role4] [role5]`          | Set role preferences |
+| `/role`                                                  | Updates role preferences |
+| `/stats [user]`                                          | View detailed player stats and rank |
+| `/help`                                                  | Display help information |
 
 ---
 ## Background Tasks
@@ -346,33 +343,6 @@ The bot uses SQLite with the following main tables:
 
 ---
 
-##  For Players
-
-### Getting Started
-1. Join the Discord server where the tournament bot is running
-2. Use `/register [gamename] [tag]` to register your League of Legends account
-3. Set your role preferences with `/pref [role1] [role2] [role3] [role4] [role5]`
-4. Wait for tournament organizers to run matchmaking and announce teams
-
-### Player Commands
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/register [gamename] [tag]` | Register your LoL account | `/register Faker T1-Faker` |
-| `/pref [role1] [role2] [role3] [role4] [role5]` | Set role preferences | `/pref top mid jungle adc support` |
-| `/role` | Update existing role preferences | `/role` |
-| `/stats [user]` | View your or another player's stats | `/stats @Username` |
-| `/player_details [user]` | View detailed player information | `/player_details @Username` |
-| `/lookup [tag]` | Look up a player by tag | `/lookup T1-Faker` |
-| `/vote_mvp [match_id] [player]` | Vote for MVP after a match | `/vote_mvp match_1 @Username` |
-
-### Tips for Players
-- Always set your role preferences in order from most to least preferred
-- Update your role preferences if they change using the `/role` command
-- If you need to sit out a game, let an admin know before matchmaking starts
-- Be prompt for check-ins to ensure matchmaking works properly
-- Vote for MVP after each match to recognize strong performances
-
-## 👑 For Admins
 
 ### Installation Instructions
 1. Follow the Setup Instructions section above to set up the bot
@@ -433,11 +403,8 @@ All configuration is done through the `.env` file. The main options are:
   - **Fix**: Corrected typos in API controller and common_view.py for clearer log messages
 
 ### Undeveloped Features
-- Match history tracking and statistics over time
 - Automatic team balancing based on past performance
-- Integration with tournament bracket systems
 - Player ranking system based on performance
-- Automated match scheduling
 
 ### Compatibility and Requirements
 - Requires Python 3.8 or later
@@ -468,7 +435,7 @@ All configuration is done through the `.env` file. The main options are:
 - Automated match result verification
 - Add ability for admins to selectively remove players from check-in pool
 - Implement player opt-out functionality after check-in
-- Enhance log readability with colored output throughout the application
+
 
 ---
 
