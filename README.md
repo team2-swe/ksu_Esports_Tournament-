@@ -168,7 +168,17 @@ If successful, the terminal will display: `Logged into server as [BotName]`
 | `/help` | Display help information |
 
 ---
+## Background Tasks
+A periodic job runs automatically in the background every 2 hours
+**Automatic Tier Update**
+parameter is configured in .env
+Based on configured vlaue of MIN_GAME_PLAYED=10, MIN_GAME_WINRATE=0.62, MAX_GAME_LOST=15
+   - Tier promoted 
+        condition: player_game_played >= MIN_GAME_PLAYED and player_winRate >= MIN_GAME_WINRATE
+   - Demote player tier
+         condition: player_game_played >= MAX_GAME_LOST
 
+---
 ## Matchmaking System
 
 ### Check-in and Game Formation Process
