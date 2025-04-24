@@ -23,13 +23,14 @@ BACKGROUND_PATH = BASE_DIR / "common" / "images" / "background.png"
 FONTS_DIR = BASE_DIR / "view" / "fonts"
 OUTPUT_DIR = BASE_DIR / "temp"
 
-# Try to ensure directories exist, but don't fail if we can't create them
+# Ensure directories exist
 try:
     # Ensure output directory exists
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
-    # Create fonts directory if it doesn't exist
+    # Create fonts directory if it doesn't exist - this is important since we store our fonts here
     os.makedirs(FONTS_DIR, exist_ok=True)
+    print(f"Directories created or verified: {FONTS_DIR}, {OUTPUT_DIR}")
 except (PermissionError, OSError) as e:
     print(f"Warning: Could not create required directories: {e}")
     # Use a temporary directory that should be writable
@@ -66,48 +67,22 @@ ROLE_COLORS = {
     "forced": (40, 40, 40)          # Dark gray
 }
 
-def download_fonts():
-    """Check for fonts and use fallback if they don't exist"""
-    # First check if the Roboto fonts are already on the system
-    try:
-        # Common system locations for Roboto fonts
-        system_locations = [
-            # macOS
-            "/Library/Fonts/Roboto-Bold.ttf",
-            "/Library/Fonts/Roboto-Regular.ttf",
-            "/System/Library/Fonts/Roboto-Bold.ttf",
-            "/System/Library/Fonts/Roboto-Regular.ttf",
-            # User fonts on macOS
-            f"{os.path.expanduser('~')}/Library/Fonts/Roboto-Bold.ttf",
-            f"{os.path.expanduser('~')}/Library/Fonts/Roboto-Regular.ttf",
-            # Linux
-            "/usr/share/fonts/truetype/roboto/Roboto-Bold.ttf",
-            "/usr/share/fonts/truetype/roboto/Roboto-Regular.ttf",
-            # Windows
-            "C:/Windows/Fonts/Roboto-Bold.ttf",
-            "C:/Windows/Fonts/Roboto-Regular.ttf",
-        ]
-        
-        # Check if we can find system fonts
-        for path in system_locations:
-            if os.path.exists(path) and "Bold" in path:
-                global DEFAULT_BOLD_FONT
-                DEFAULT_BOLD_FONT = path
-            elif os.path.exists(path) and "Regular" in path:
-                global DEFAULT_REGULAR_FONT
-                DEFAULT_REGULAR_FONT = path
-        
-        # If we found system fonts, return
-        if (isinstance(DEFAULT_BOLD_FONT, str) and isinstance(DEFAULT_REGULAR_FONT, str) and 
-            os.path.exists(DEFAULT_BOLD_FONT) and os.path.exists(DEFAULT_REGULAR_FONT)):
-            print(f"Using system fonts: {DEFAULT_BOLD_FONT} and {DEFAULT_REGULAR_FONT}")
-            return True
-
-        # At this point, we don't have system fonts or our own fonts
-        print("No suitable fonts found, using default")
-        return False
-    except Exception as e:
-        print(f"Error finding fonts: {e}")
+def check_bundled_fonts():
+    """Check for bundled fonts in the repository"""
+    global DEFAULT_BOLD_FONT, DEFAULT_REGULAR_FONT
+    
+    # Use the fonts bundled with the repository
+    bold_font_path = FONTS_DIR / "Roboto-Bold.ttf"
+    regular_font_path = FONTS_DIR / "Roboto-Regular.ttf"
+    
+    if bold_font_path.exists() and regular_font_path.exists():
+        DEFAULT_BOLD_FONT = str(bold_font_path)
+        DEFAULT_REGULAR_FONT = str(regular_font_path)
+        print(f"Using bundled Roboto fonts from {FONTS_DIR}")
+        return True
+    else:
+        print(f"Warning: Expected bundled fonts not found in {FONTS_DIR}")
+        print(f"Make sure Roboto-Bold.ttf and Roboto-Regular.ttf are in the view/fonts directory")
         return False
 
 def get_role_icon(role):
@@ -169,8 +144,15 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
     Returns:
         str: Path to the created image
     """
-    # Check for fonts, but don't raise an exception if we can't find them
-    have_custom_fonts = download_fonts()
+    # Check for bundled fonts
+    print("Checking for bundled fonts...")
+    have_custom_fonts = check_bundled_fonts()
+    
+    # Debug font paths
+    print(f"Font detection results:")
+    print(f"  Bundled fonts available: {have_custom_fonts}")
+    print(f"  Bold font path: {DEFAULT_BOLD_FONT}")
+    print(f"  Regular font path: {DEFAULT_REGULAR_FONT}")
     
     # Image dimensions - use standard 1080p size
     width = 1920
@@ -185,6 +167,11 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
                 # Check if LANCZOS is available (Pillow versions may differ)
                 resize_method = Image.LANCZOS if hasattr(Image, 'LANCZOS') else Image.ANTIALIAS
                 img = img.resize((width, height), resize_method)
+                
+            # Convert to RGB mode to prevent color mode mixing issues
+            if img.mode != 'RGB':
+                print(f"Converting background from {img.mode} to RGB mode")
+                img = img.convert('RGB')
         else:
             # Fallback to generated gradient if background image doesn't exist
             print("Background image not found, generating gradient...")
@@ -197,23 +184,31 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
     
     # Create a subtle footer for match ID and date
     footer_height = 60
-    footer_overlay = Image.new('RGBA', (width, footer_height), (*BLACK, 150))
-    img.paste(footer_overlay, (0, height - footer_height), footer_overlay)
+    # Check image mode and create footer with same mode
+    if img.mode == 'RGB':
+        # For RGB images, create an RGB footer with solid color
+        footer_overlay = Image.new('RGB', (width, footer_height), BLACK)
+        img.paste(footer_overlay, (0, height - footer_height))
+    else:
+        # For RGBA images, we can use transparency
+        footer_overlay = Image.new('RGBA', (width, footer_height), (*BLACK, 150))
+        img.paste(footer_overlay, (0, height - footer_height), footer_overlay)
     
-    # Load fonts - first try truetype fonts if available, otherwise use default
+    # Load fonts for text rendering
     try:
-        # Use system fonts or custom fonts if available
-        if have_custom_fonts and (isinstance(DEFAULT_BOLD_FONT, str) and isinstance(DEFAULT_REGULAR_FONT, str) and 
-            os.path.exists(DEFAULT_BOLD_FONT) and os.path.exists(DEFAULT_REGULAR_FONT)):
-            # Font sizes for clean, professional display
+        if have_custom_fonts:
+            print("Loading fonts with specified sizes...")
+            # Using our bundled Roboto fonts with moderate sizing
             title_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 96)
             header_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 72)
-            player_name_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 290)  # 5x bigger than before (was 58)
-            detail_font = ImageFont.truetype(str(DEFAULT_REGULAR_FONT), 48)
-            role_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 48)
+            player_name_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 40)
+            detail_font = ImageFont.truetype(str(DEFAULT_REGULAR_FONT), 40)
+            role_font = ImageFont.truetype(str(DEFAULT_BOLD_FONT), 40)
             footer_font = ImageFont.truetype(str(DEFAULT_REGULAR_FONT), 36)
+            print("Successfully loaded all fonts")
         else:
-            # Fallback to default PIL font - can't resize these much, so just using as-is
+            # Only as a last resort, use default fonts
+            print("Warning: Bundled fonts not found, using default fonts (text sizing won't work)")
             title_font = ImageFont.load_default()
             header_font = ImageFont.load_default()
             player_name_font = ImageFont.load_default()
@@ -221,8 +216,7 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
             role_font = ImageFont.load_default()
             footer_font = ImageFont.load_default()
     except Exception as e:
-        # If there's any error, use default fonts
-        print(f"Error loading custom fonts: {e}")
+        print(f"Error loading fonts: {e}")
         title_font = ImageFont.load_default()
         header_font = ImageFont.load_default()
         player_name_font = ImageFont.load_default()
@@ -232,19 +226,17 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
     
     # Draw match heading
     match_id_clean = match_id.replace('match_', '')
-    match_title = f"MATCH #{match_id_clean} - TEAM BLUE vs TEAM RED"
-    draw.text((width // 2, 70), match_title, fill=WHITE, font=title_font, anchor="mm")
-    
+
     # Draw team headers with fancy styling
     team1_x = width // 4
     team2_x = width - (width // 4)
     
     # Team 1 Header - use larger font
-    team1_text = "TEAM BLUE"
+    team1_text = "BLUE TEAM"
     draw.text((team1_x, 170), team1_text, fill=TEAM1_COLOR, font=title_font, anchor="mm")
     
     # Team 2 Header - use larger font
-    team2_text = "TEAM RED"
+    team2_text = "RED TEAM"
     draw.text((team2_x, 170), team2_text, fill=TEAM2_COLOR, font=title_font, anchor="mm")
     
     # Simple VS text in center
@@ -266,7 +258,7 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
     
     # Draw player matchups by role
     for i, role in enumerate(standard_roles):
-        y_position = 300 + (i * 220)  # Increased spacing for larger player cards (was 140)
+        y_position = 300 + (i * 140)  # Standard spacing for normal card sizes
         
         # Draw role indicator in center
         role_color = ROLE_COLORS.get(role, GRAY)
@@ -274,19 +266,26 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
         circle_x = width // 2
         circle_y = y_position
         
-        # Draw circle background
-        draw.ellipse([(circle_x - circle_radius, circle_y - circle_radius), 
-                    (circle_x + circle_radius, circle_y + circle_radius)], 
-                  fill=role_color, outline=WHITE, width=3)
+        # Draw circle background - handle RGB mode
+        if img.mode == 'RGB':
+            # In RGB mode, just use solid colors
+            draw.ellipse([(circle_x - circle_radius, circle_y - circle_radius), 
+                        (circle_x + circle_radius, circle_y + circle_radius)], 
+                      fill=role_color, outline=WHITE, width=5)
+        else:
+            # In RGBA mode, we can use full features
+            draw.ellipse([(circle_x - circle_radius, circle_y - circle_radius), 
+                        (circle_x + circle_radius, circle_y + circle_radius)], 
+                      fill=role_color, outline=WHITE, width=3)
         
         # Draw role text
         role_display = role[0].upper()  # Just first letter
-        draw.text((circle_x, circle_y), role_display, 
+        draw.text((circle_x, circle_y), role_display,
                 fill=WHITE, font=role_font, anchor="mm")
         
         # Draw small role name below icon
         role_name = role.upper()
-        draw.text((circle_x, circle_y + circle_radius + 15), role_name,
+        draw.text((circle_x, circle_y + circle_radius + 35), role_name,
                 fill=WHITE, font=footer_font, anchor="mm")
         
         # Draw team 1 player
@@ -296,26 +295,37 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
             tier = team1_player.get('tier', 'unknown').capitalize()
             rank = team1_player.get('rank', '')
             
-            # Draw player card background - much larger to accommodate giant player names
-            card_width = 700  # Increased from 400
-            card_height = 200  # Increased from 100
+            # Draw player card background - standard size
+            card_width = 400
+            card_height = 100
             card_x = team1_x - (card_width // 2)
             card_y = y_position - (card_height // 2)
             
-            # Create semi-transparent card with team color
-            player_card = Image.new('RGBA', (card_width, card_height), (*TEAM1_COLOR, 40))
-            img.paste(player_card, (card_x, card_y), player_card)
+            # Create player card overlay compatible with the image mode
+            if img.mode == 'RGB':
+                # For RGB images, use a solid but darker version of the team color
+                darker_color = tuple(int(c * 0.4) for c in TEAM1_COLOR)  # 40% brightness
+                player_card = Image.new('RGB', (card_width, card_height), darker_color)
+                img.paste(player_card, (card_x, card_y))
+            else:
+                # For RGBA images, we can use transparency
+                player_card = Image.new('RGBA', (card_width, card_height), (*TEAM1_COLOR, 40))
+                img.paste(player_card, (card_x, card_y), player_card)
             
-            # Draw clean card border
-            draw.rectangle([(card_x, card_y), (card_x + card_width, card_y + card_height)], 
-                          outline=(*TEAM1_COLOR, 180), width=3)
+            # Draw clean card border (use solid color for RGB mode)
+            if img.mode == 'RGB':
+                draw.rectangle([(card_x, card_y), (card_x + card_width, card_y + card_height)], 
+                            outline=TEAM1_COLOR, width=3)
+            else:
+                draw.rectangle([(card_x, card_y), (card_x + card_width, card_y + card_height)], 
+                            outline=(*TEAM1_COLOR, 180), width=3)
             
-            # Player name - centered in card
+            # Simple player name rendering - draw with a larger font
             draw.text((team1_x, y_position - 20), player_name,
                     fill=TEAM1_COLOR, font=player_name_font, anchor="mm")
             
-            # Player rank - positioned at bottom of card
-            draw.text((team1_x, y_position + 80), f"{tier} {rank}",  # Moved down to bottom of larger card
+            # Player rank - using regular detail font
+            draw.text((team1_x, y_position + 25), f"{tier} {rank}",
                     fill=WHITE, font=detail_font, anchor="mm")
         
         # Draw team 2 player
@@ -325,26 +335,37 @@ def create_team_matchup_image(match_id, team1_players, team2_players):
             tier = team2_player.get('tier', 'unknown').capitalize()
             rank = team2_player.get('rank', '')
             
-            # Draw player card background - much larger to accommodate giant player names
-            card_width = 700  # Increased from 400
-            card_height = 200  # Increased from 100
+            # Draw player card background - standard size
+            card_width = 400
+            card_height = 100
             card_x = team2_x - (card_width // 2)
             card_y = y_position - (card_height // 2)
             
-            # Create semi-transparent card with team color
-            player_card = Image.new('RGBA', (card_width, card_height), (*TEAM2_COLOR, 40))
-            img.paste(player_card, (card_x, card_y), player_card)
+            # Create player card overlay compatible with the image mode
+            if img.mode == 'RGB':
+                # For RGB images, use a solid but darker version of the team color
+                darker_color = tuple(int(c * 0.4) for c in TEAM2_COLOR)  # 40% brightness
+                player_card = Image.new('RGB', (card_width, card_height), darker_color)
+                img.paste(player_card, (card_x, card_y))
+            else:
+                # For RGBA images, we can use transparency
+                player_card = Image.new('RGBA', (card_width, card_height), (*TEAM2_COLOR, 40))
+                img.paste(player_card, (card_x, card_y), player_card)
             
-            # Draw clean card border
-            draw.rectangle([(card_x, card_y), (card_x + card_width, card_y + card_height)], 
-                          outline=(*TEAM2_COLOR, 180), width=3)
+            # Draw clean card border (use solid color for RGB mode)
+            if img.mode == 'RGB':
+                draw.rectangle([(card_x, card_y), (card_x + card_width, card_y + card_height)], 
+                            outline=TEAM2_COLOR, width=3)
+            else:
+                draw.rectangle([(card_x, card_y), (card_x + card_width, card_y + card_height)], 
+                            outline=(*TEAM2_COLOR, 180), width=3)
             
-            # Player name - centered in card
+            # Simple player name rendering - draw with a larger font
             draw.text((team2_x, y_position - 20), player_name,
                     fill=TEAM2_COLOR, font=player_name_font, anchor="mm")
             
-            # Player rank - positioned at bottom of card
-            draw.text((team2_x, y_position + 80), f"{tier} {rank}",  # Moved down to bottom of larger card
+            # Player rank - using regular detail font
+            draw.text((team2_x, y_position + 25), f"{tier} {rank}",
                     fill=WHITE, font=detail_font, anchor="mm")
     
     # Add match ID to bottom left
