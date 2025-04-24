@@ -37,7 +37,11 @@ class Api_Collection(commands.Cog):
                     player_wins = player_info[0]['wins']
                     player_losses = player_info[0]['losses']
                     
-                    Game.update_player_API_info(db, player[0], player_tier, player_rank, player_wins, player_losses)
+                    # Create a Game instance to ensure the method is called properly
+                    game_db = Game(db_name=settings.DATABASE_NAME)
+                    game_db.connection = db.connection
+                    game_db.cursor = db.cursor
+                    game_db.update_player_API_info(player[0], player_tier, player_rank, player_wins, player_losses)
             db.close_db()
     @fetch_all_players_details.before_loop
     async def before_fetch_all_players_details(self):
@@ -75,10 +79,10 @@ class Api_Collection(commands.Cog):
                         logger.info(f"not result for user puuid {puuid} and url: {url_puuid}")
                         return
             else:
-                print(f"not result for user tage_id: {tag_id} and url: {url}")
+                print(f"not result for user tag_id: {tag_id} and url: {url}")
                 return
         except Exception as ex:
-            logger.info(f"the request to get user puui is failed")
+            logger.info(f"the request to get user puuid is failed")
 
     
     @commands.Cog.listener()
