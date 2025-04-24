@@ -138,6 +138,37 @@ If successful, the terminal will display: `Logged into server as [BotName]`
 
 ## Matchmaking System
 
+### Check-in and Game Formation Process
+
+The tournament follows this workflow:
+
+1. **Player Check-in**
+   - Admin initiates check-in with `/checkin_game [timeout]` command
+   - A check-in button appears in the tournament channel
+   - Players click the button to check in within the time limit (default: 15 minutes)
+   - Players who aren't registered will be prompted to register and set preferences
+   - Check-in status is tracked until timeout or matchmaking begins
+
+2. **Managing Check-ins**
+   - Starting a new check-in will reset the previous check-in pool
+   - Players can't remove themselves once checked in (they must notify an admin)
+   - There is no direct command to remove a specific player from the check-in pool
+   - **Workaround for player removal**:
+     - If a player needs to leave after checking in, restart the check-in process
+     - Use `/checkin_game` command again with a shorter timeout
+     - Have remaining players check in again
+   - The `/simulate_volunteers [count]` command can randomly select players to sit out when too many players are checked in
+
+3. **Game Generation**
+   - The matchmaking system automatically adapts to the number of players checked in:
+     - If exactly 10 players are checked in, a single standard 5v5 game will be generated
+     - With more than 10 players, multiple games can be created
+     - For example, with 20 players, two separate 5v5 games will be formed
+   - Players can volunteer to sit out if the number doesn't divide evenly
+   - The system ensures each game is balanced independently
+   - Each game receives a unique sequential match ID (match_1, match_2, etc.)
+   - Admins can view and manage all active games through the bot interface
+
 The bot uses two matchmaking approaches:
 
 ### Standard Matchmaking Logic
@@ -154,6 +185,69 @@ The bot uses two matchmaking approaches:
 - Uses fitness functions to evaluate team balance
 - Performs up to 300 generations to find optimal team compositions
 - Teams are stored with sequential match IDs (match_1, match_2, etc.)
+
+#### Genetic Matchmaking Workflow
+
+The genetic algorithm matchmaking flow consists of these key steps:
+
+1. **Player Data Preparation**
+   - `fetch_player_data()`: Loads player data from database (or test data if unavailable)
+   - `calculate_player_tier()`: Converts LoL ranks into numerical tier values
+   - `initial_sorting_player()`: Sorts players by tier, rank, and win ratio
+
+2. **Performance Calculation**
+   - `calculate_performance()`: Calculates performance metrics for each player
+   - Factors in player's tier, manual tier, win rate, and role preferences
+   - Creates a `roleBasedPerformance` object for each player containing performance values for each role
+   - Applies role preference penalties (each position down from preferred role gets a 5% penalty)
+
+3. **Genetic Algorithm Core**
+   - `genetic_algorithm()`: Runs the main evolutionary process
+   - Uses adaptive parameters that increase for small player pools
+   - Maintains a population of potential team arrangements (chromosomes)
+   - Runs for up to 300 generations or stops early if no improvement for 50 generations
+
+4. **Chromosome Representation**
+   - Each chromosome is a permutation of player indices
+   - First half represents Team 1, second half represents Team 2
+   - `decode_chromosome()`: Converts chromosome into two team compositions
+
+5. **Fitness Evaluation**
+   - `calculate_fitness()`: Scores each potential team arrangement
+   - Balances two objectives:
+     - Overall team balance (70% weight): How even are the teams' total skill levels?
+     - Role matchup balance (30% weight): How close in skill are players in the same role?
+
+6. **Genetic Operators**
+   - `tournament_selection()`: Selects parent chromosomes based on fitness
+   - `order_crossover()`: Creates child solutions by combining parts of two parent chromosomes
+   - `swap_mutation()`: Introduces random changes to maintain genetic diversity
+
+7. **Role Assignment**
+   - `assign_team_roles()`: Assigns optimal roles to each player in a team
+   - Prioritizes roles with largest skill differences between players
+   - Uses a greedy algorithm to maximize overall team effectiveness
+   - Ensures each standard role (top, jungle, mid, bottom, support) is filled exactly once
+
+8. **Results & Storage**
+   - `save_matchmaking_results()`: Saves the final teams to the database with a unique match ID
+   - Teams are stored with player IDs, team assignments, and a sequential match identifier
+
+#### Performance Metrics & Balancing
+
+The system calculates player performance using:
+
+1. **Base Skill Factor**: Derived from the player's rank (Iron to Challenger)
+2. **Role-Specific Performance**: Modified by role preference order
+3. **Manual Tier Adjustment**: Admin-assigned tier values can override calculated tiers
+4. **Win Rate Influence**: Player's win percentage factors into performance
+
+The fitness function aims to:
+- Create teams with similar total performance values
+- Match players of similar skill levels in the same role on opposing teams
+- Respect player role preferences as much as possible
+
+This advanced genetic algorithm approach consistently produces more balanced teams than random or naive sorting methods, especially for complex situations with varied ranks and specific role preferences.
 
 ---
 
@@ -323,6 +417,8 @@ All configuration is done through the `.env` file. The main options are:
 - Create a web dashboard for tournament management
 - Support for multiple games beyond League of Legends
 - Automated match result verification
+- Add ability for admins to selectively remove players from check-in pool
+- Implement player opt-out functionality after check-in
 
 ---
 
