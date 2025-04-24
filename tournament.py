@@ -28,6 +28,9 @@ async def main():
 
 
     sys_client = commands.Bot(command_prefix="$", intents=intents)
+    
+    # Add a flag to track bot initialization state
+    sys_client.is_fully_initialized = False
 
     # Initialize the database and create tables
     db = Tournament_DB()
@@ -39,40 +42,81 @@ async def main():
     Matches.createTable(db)
     MVP_Votes.createTable(db)
     Player_game_info.createTable(db)
+    
+    # Add a command error handler for app commands
+    @sys_client.tree.error
+    async def on_app_command_error(interaction, error):
+        if not sys_client.is_fully_initialized:
+            try:
+                # If bot isn't fully initialized, inform the user
+                await interaction.response.send_message(
+                    "⏳ Bot is still initializing. Please wait about 30 seconds and try again.",
+                    ephemeral=True
+                )
+                return
+            except Exception:
+                # If we can't respond to the interaction, it's likely already timed out
+                pass
+                
+        # Standard error handling
+        logger.error(f"Command error: {error}")
+        try:
+            await interaction.response.send_message(
+                "An error occurred while executing the command. Please try again in a moment.",
+                ephemeral=True
+            )
+        except Exception:
+            pass
 
 
     @sys_client.event
     async def on_ready():
         logger.info(f"Logged into server as {sys_client.user}")
+        logger.info("Bot is starting initialization...")
 
-        #create a channels and save cached created channels on all server bot is running
-        for guild in sys_client.guilds:
-            logger.info(f"the guild value is: {guild.id}")
-            
-            # Log available roles in the server to help with debugging
-            logger.info(f"Available roles in guild {guild.name}:")
-            for role in guild.roles:
-                logger.info(f"  - Role: {role.name} (ID: {role.id})")
+        start_time = asyncio.get_event_loop().time()
+        
+        try:
+            # Create a channels and save cached created channels on all servers the bot is running
+            for guild in sys_client.guilds:
+                logger.info(f"Initializing guild: {guild.id} ({guild.name})")
                 
-            await Details_Cached.channels_for_tournament(ch_config=settings.CHANNEL_CONFIG, guild=guild)
+                # Log available roles in the server to help with debugging
+                logger.info(f"Available roles in guild {guild.name}:")
+                for role in guild.roles:
+                    logger.info(f"  - Role: {role.name} (ID: {role.id})")
+                    
+                await Details_Cached.channels_for_tournament(ch_config=settings.CHANNEL_CONFIG, guild=guild)
 
-        # Load the cogs (controllers)
-        for cmd_file in settings.controller_dir.glob("*.py"):
-            if cmd_file.name != "__init__.py" and cmd_file.name != "signup_shared_logic.py":
-                try:
-                    # await sys_client.load_extension(f"controller.{cmd_file.name[:-3]}")
-                    await sys_client.load_extension(f"controller.{cmd_file.stem}")
-                except errors.ExtensionAlreadyLoaded:
-                    logger.info(f"{cmd_file.stem} command is already loaded")
-                except Exception as ex:
-                    logger.info(f"Error loading {cmd_file.stem} command: {ex}")
-        
-        
-        guild = sys_client.get_guild(settings.GUILD_ID)
+            # Load the cogs (controllers)
+            for cmd_file in settings.controller_dir.glob("*.py"):
+                if cmd_file.name != "__init__.py" and cmd_file.name != "signup_shared_logic.py":
+                    try:
+                        await sys_client.load_extension(f"controller.{cmd_file.stem}")
+                        logger.info(f"Loaded controller: {cmd_file.stem}")
+                    except errors.ExtensionAlreadyLoaded:
+                        logger.info(f"{cmd_file.stem} command is already loaded")
+                    except Exception as ex:
+                        logger.error(f"Error loading {cmd_file.stem} command: {ex}")
+            
+            guild = sys_client.get_guild(settings.GUILD_ID)
 
-        #copy the global slash commands to the specific guild
-        sys_client.tree.copy_global_to(guild=guild)
-        await sys_client.tree.sync(guild=guild)
+            # Copy the global slash commands to the specific guild
+            sys_client.tree.copy_global_to(guild=guild)
+            await sys_client.tree.sync(guild=guild)
+            
+            # Mark initialization as complete
+            sys_client.is_fully_initialized = True
+            
+            # Calculate and log initialization time
+            end_time = asyncio.get_event_loop().time()
+            init_time = end_time - start_time
+            logger.info(f"Bot fully initialized in {init_time:.2f} seconds!")
+            
+        except Exception as ex:
+            logger.error(f"Error during initialization: {ex}")
+            # Even if there's an error, mark as initialized so commands can work
+            sys_client.is_fully_initialized = True
 
 
     #error handling
