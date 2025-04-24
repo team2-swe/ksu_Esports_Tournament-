@@ -48,6 +48,12 @@ async def main():
         #create a channels and save cached created channels on all server bot is running
         for guild in sys_client.guilds:
             logger.info(f"the guild value is: {guild.id}")
+            
+            # Log available roles in the server to help with debugging
+            logger.info(f"Available roles in guild {guild.name}:")
+            for role in guild.roles:
+                logger.info(f"  - Role: {role.name} (ID: {role.id})")
+                
             await Details_Cached.channels_for_tournament(ch_config=settings.CHANNEL_CONFIG, guild=guild)
 
         # Load the cogs (controllers)
