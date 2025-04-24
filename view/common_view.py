@@ -5,6 +5,10 @@ import traceback
 import asyncio
 import time
 from model import dbc_model
+from colorama import Fore, Style, init
+
+# Initialize colorama
+init(autoreset=True)
 
 logger = settings.logging.getLogger("discord")
 
@@ -38,7 +42,7 @@ class RegisterModal(Modal, title="Registration"):
             Args:
                 discord interaction (interaction: discord.Interaction)
         """
-        logger.info(f"game detail {self.game_name.value} and user id is {self.Tag_id.value}")
+        logger.info(f"game name {Fore.RED}{self.game_name.value}{Style.RESET_ALL} and user id is {Fore.RED}{self.Tag_id.value}{Style.RESET_ALL}")
         try:
             db = dbc_model.Tournament_DB()
             dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(),
@@ -172,7 +176,7 @@ class Checkin_RegisterModal(Modal, title="Registration"):
         Args:
             discord interaction (interaction: discord.Interaction)
         """
-        logger.info(f"game detail {self.game_name.value} and user id is {self.Tag_id.value}")
+        logger.info(f"game name {Fore.RED}{self.game_name.value}{Style.RESET_ALL} and user id is {Fore.RED}{self.Tag_id.value}{Style.RESET_ALL}")
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
         try:
             db = dbc_model.Tournament_DB()
