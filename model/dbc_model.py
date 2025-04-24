@@ -365,11 +365,35 @@ class Game(Tournament_DB):
         # Calculate manual tier value automatically based on tier and rank
         manual_tier = self.calculate_manual_tier(tier, rank)
         
-        register_query = "insert into Game(user_id, tier, rank, wins, losses, manual_tier) values(?, ?, ?, ?, ?, ?)"
-
         try:
-            self.cursor.execute(register_query, (player_id, tier, rank, wins, losses, manual_tier))
-            self.connection.commit()
+            # First, fetch the player's game_name from the player table
+            self.cursor.execute("SELECT game_name FROM player WHERE user_id = ?", (player_id,))
+            player_data = self.cursor.fetchone()
+            
+            if player_data and player_data[0]:
+                game_name = player_data[0]
+                
+                # Try to update existing entry first
+                update_query = """
+                    UPDATE game 
+                    SET tier = ?, rank = ?, wins = ?, losses = ?, manual_tier = ?
+                    WHERE user_id = ? AND game_date = (
+                        SELECT MAX(game_date) FROM game WHERE user_id = ?
+                    )
+                """
+                self.cursor.execute(update_query, (tier, rank, wins, losses, manual_tier, player_id, player_id))
+                
+                # If no rows were updated, insert a new record
+                if self.cursor.rowcount == 0:
+                    register_query = """
+                        INSERT INTO Game(user_id, game_name, tier, rank, wins, losses, manual_tier) 
+                        VALUES(?, ?, ?, ?, ?, ?, ?)
+                    """
+                    self.cursor.execute(register_query, (player_id, game_name, tier, rank, wins, losses, manual_tier))
+                
+                self.connection.commit()
+            else:
+                logger.error(f"update_player_API_info could not find game_name for user_id {player_id}")
             
         except Exception as ex:
             logger.error(f"update_player_API_info has failed with error {ex}")
