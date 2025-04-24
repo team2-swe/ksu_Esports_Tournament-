@@ -219,3 +219,8 @@ def test_role_assignment():
 
 if __name__ == "__main__":
     test_role_assignment()
+    
+# Add discord.py extension setup function
+async def setup(bot):
+    # This file is just for testing, so we don't need to add a cog
+    pass
