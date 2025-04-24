@@ -1,7 +1,11 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from discord import Interaction, Permissions
-from controller.admin_controller import Admin_commands  # Adjust the import based on your project structure
+from controller.admin_controller import Admin_commands  
+from controller.player_signup import PlayerSignUp 
+from controller.player_commands import PlayerDetails
+import asyncio
+from unittest.mock import AsyncMock, patch, MagicMock, ANY
 
 
 @pytest.fixture
@@ -74,10 +78,10 @@ async def test_tier_update_admin(test_bot, mock_interaction):
     with patch("controller.admin_controller.Player_game_info.fetch_by_id", return_value=[("Gold",)]), \
          patch("controller.admin_controller.TierView", return_value=MagicMock()):
 
-        await cog.tier_update.callback(cog, mock_interaction, player_id="valid_player")
+        await cog.tier_update.callback(cog, mock_interaction, player_id="123456")
 
         mock_interaction.response.send_message.assert_called_with(
-            "player current tier is Gold select the tier from dropdown", view=MagicMock()
+            "player current tier is Gold select the tier from dropdown", view=ANY
         )
 
 @pytest.mark.asyncio
@@ -86,7 +90,7 @@ async def test_tier_update_invalid_player(test_bot, mock_interaction):
     cog = Admin_commands(test_bot)
 
     with patch("controller.admin_controller.Player_game_info.fetch_by_id", return_value=None):
-        await cog.tier_update.callback(cog, mock_interaction, player_id="invalid_player")
+        await cog.tier_update.callback(cog, mock_interaction, player_id="999999")
 
         mock_interaction.response.send_message.assert_called_with(
             "Player not found, please check the user id"
@@ -137,4 +141,16 @@ async def test_toxicity_update_non_admin(test_bot, mock_interaction_non_admin):
     mock_interaction_non_admin.response.send_message.assert_called_with(
         "❌ This command is only for administrators.", ephemeral=True
     )
+
+@pytest.mark.asyncio
+@patch("controller.player_signup.SharedLogic.execute_signup_model", new_callable=AsyncMock)
+async def test_player_signup_success(mock_execute, test_bot, mock_interaction):
+    """Test the /register command runs successfully."""
+    cog = PlayerSignUp(test_bot)
+
+    await cog.player_signup.callback(cog, mock_interaction)
+
+    mock_execute.assert_awaited_once_with(mock_interaction)
+
+
 
