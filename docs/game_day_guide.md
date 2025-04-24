@@ -74,10 +74,3 @@
 - `/list_players` - View all registered players
 - `/adjust_player_tier` - Manually adjust a player's skill rating
 
-### Check-in Commands
-- `/checkin_game` - Start the check-in process
-
-### Player Commands
-- `/signup` - Register for the tournament
-- `/role` - Set role preferences
-- `/vote_mvp` - Vote for MVP
