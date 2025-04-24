@@ -1,6 +1,3 @@
-# Suppress audioop deprecation warning from discord.py
-import warnings
-warnings.filterwarnings("ignore", message="'audioop' is deprecated")
 
 import discord
 from discord.ext import commands
@@ -10,11 +7,12 @@ from discord.ext.commands import errors
 from model.dbc_model import Tournament_DB, Player, Game
 from common.database_connection import tournament_dbc
 from common.cached_details import Details_Cached
-
+import warnings
+warnings.filterwarnings("ignore", message="'audioop' is deprecated")
 
 '''
 we use bot.start(): 
-    to start bot asynchroneousely
+    to start bot asynchronously
     we have a chance to customize event loop to increase the performance
     flexibility because of we can set up custom logic or tasks before or after the botstarts running
 '''

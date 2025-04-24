@@ -454,6 +454,7 @@ All configuration is done through the `.env` file. The main options are:
 - Automated match result verification
 - Add ability for admins to selectively remove players from check-in pool
 - Implement player opt-out functionality after check-in
+- Enhance log readability with colored output throughout the application
 
 ---
 

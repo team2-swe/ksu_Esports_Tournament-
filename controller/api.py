@@ -3,6 +3,10 @@ from discord.ext import commands, tasks
 from config import settings
 from model.dbc_model import Tournament_DB ,Player, Game
 import requests
+from colorama import Fore, Style, init
+
+# Initialize colorama
+init(autoreset=True)
 
 logger = settings.logging.getLogger("discord")
 
@@ -27,7 +31,7 @@ class Api_Collection(commands.Cog):
         all_players = Player.get_all_player(db)
         if all_players is not None:
             for player in all_players:
-                logger.info(f"start to fetch a player discord is: {player[0]} details from riot api")
+                logger.info(f"start to fetch a player discord is: {Fore.CYAN}{player[0]}{Style.RESET_ALL} details from riot api")
                 player_info = await self.get_player_details(player[1], player[2])
 
                 if player_info and player_info[0]['rank']:
@@ -76,10 +80,10 @@ class Api_Collection(commands.Cog):
                             response = requests.get(f"{url_summonId}/{summoner_id}?api_key={settings.API_KEY}", headers=headers)
                             return response.json()
                     else:
-                        logger.info(f"not result for user puuid {puuid} and url: {url_puuid}")
+                        logger.info(f"not result for user puuid {Fore.RED}{puuid}{Style.RESET_ALL} and url: {url_puuid}")
                         return
             else:
-                print(f"not result for user tag_id: {tag_id} and url: {url}")
+                print(f"not result for user tag_id: {Fore.RED}{tag_id}{Style.RESET_ALL} and url: {url}")
                 return
         except Exception as ex:
             logger.info(f"the request to get user puuid is failed")
