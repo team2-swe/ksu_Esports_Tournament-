@@ -20,7 +20,7 @@ class RegisterModal(Modal, title="Registration"):
         self.viewStart_time = time.time()
         self.game_name = TextInput(
             style=discord.TextStyle.long,
-            label="game name:",
+            label="Game Name:",
             max_length=500,
             required=True,
             placeholder="Game Name"
@@ -29,16 +29,16 @@ class RegisterModal(Modal, title="Registration"):
 
         self.Tag_id = TextInput(
             style=discord.TextStyle.short,
-            label="your tag id",
+            label="Your Tag ID",
             required=True,
             placeholder="Tag ID"
         )
         self.add_item(self.Tag_id)
 
     async def on_submit(self, interaction: discord.Interaction):
-        """ this has a summury of checkin submission
+        """ this has a summary of checkin submission
             info:
-                summury will be send to feedback channel
+                summary will be send to feedback channel
             Args:
                 discord interaction (interaction: discord.Interaction)
         """
@@ -48,14 +48,14 @@ class RegisterModal(Modal, title="Registration"):
             dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(),
                                       tagid=self.Tag_id.value.strip())
             db.close_db()
-            embed = discord.Embed(title="Checkin summury",
-                                  description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
+            embed = discord.Embed(title="Checkin Summary",
+                                  description=f"Game Name: {self.game_name.value}\nTag ID: {self.Tag_id.value}",
                                   color=discord.Color.yellow())
             embed.set_author(name=self.user)
             await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed)
 
         except Exception as ex:
-            print(f"it is faild on {ex}")
+            print(f"it faild on {ex}")
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         traceback.print_tb(error.__traceback__)
@@ -170,9 +170,9 @@ class Checkin_RegisterModal(Modal, title="Registration"):
         self.add_item(self.Tag_id)
 
     async def on_submit(self, interaction: discord.Interaction):
-        """ this has a summury of checkin submission
+        """ this has a summary of checkin submission
         info:
-            summury will be send to feedback channel
+            summary will be send to feedback channel
         Args:
             discord interaction (interaction: discord.Interaction)
         """
@@ -183,8 +183,8 @@ class Checkin_RegisterModal(Modal, title="Registration"):
             dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(),
                                       tagid=self.Tag_id.value.strip())
             db.close_db()
-            embed = discord.Embed(title="Checkin summury",
-                                  description=f"submitted game name: {self.game_name.value} and your tag id:{self.Tag_id.value}",
+            embed = discord.Embed(title="Checkin Summary",
+                                  description=f"Game Name: {self.game_name.value}\n Tag ID:{self.Tag_id.value}",
                                   color=discord.Color.yellow())
             embed.set_author(name=self.user)
 
