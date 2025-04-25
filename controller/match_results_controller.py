@@ -37,7 +37,7 @@ class MatchResultsController(commands.Cog):
                 FROM Matches 
                 WHERE win IS NULL AND loss IS NULL
                 GROUP BY teamId
-                ORDER BY MAX(date_played) DESC
+                ORDER BY teamId ASC
                 LIMIT 10
             """)
 
@@ -185,6 +185,14 @@ class MatchResultsController(commands.Cog):
             )
             losers_updated = db.cursor.rowcount
             logger.info(f"Updated {losers_updated} losers for match {match_id}, team {losing_team_name}")
+            
+            # Update all other players in this match (e.g., volunteers or participation) to mark match as completed
+            db.cursor.execute(
+                "UPDATE Matches SET win = 'n/a', loss = 'n/a' WHERE teamId = ? AND win IS NULL AND loss IS NULL",
+                (match_id,)
+            )
+            others_updated = db.cursor.rowcount
+            logger.info(f"Updated {others_updated} other players for match {match_id} to mark as completed")
 
             # Get player stats to update
             db.cursor.execute(

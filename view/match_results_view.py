@@ -26,8 +26,8 @@ class MatchResultView(discord.ui.View):
             is_processed = match_id in self.processed_results
 
             option = discord.SelectOption(
-                label=f"Game {pool_idx + 1}",
-                description=f"Match ID: {match_id}",
+                label=f"Match {match_id}",
+                description=f"Game #{pool_idx + 1}",
                 value=match_id,
                 default=False,
                 emoji="✅" if is_processed else "⏱️"

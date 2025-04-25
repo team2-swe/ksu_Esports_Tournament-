@@ -623,6 +623,8 @@ class Player_game_info(Tournament_DB):
             losses integer,
             manual_tier float,
             wr float,
+            toxicity_points integer not null default 0,
+            mvp_count integer not null default 0,
             FOREIGN KEY (player_id) REFERENCES player (user_id) ON DELETE CASCADE
         )
         """
@@ -633,10 +635,10 @@ class Player_game_info(Tournament_DB):
     def exportToGoogleSheet(db):
         """Export player data to Google Sheets format"""
         try:
-            # Combine player and game data
+            # Combine player and game data, including toxicity points and MVP count
             db.cursor.execute("""
                 SELECT p.user_id as player_id, p.game_name, p.tag_id, g.tier, g.rank, g.role, 
-                       g.wins, g.losses, g.manual_tier, g.wr
+                       g.wins, g.losses, g.manual_tier, g.wr, p.toxicity_points, p.mvp_count
                 FROM player p
                 LEFT JOIN (
                     SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
@@ -648,7 +650,7 @@ class Player_game_info(Tournament_DB):
             
             # Create header row
             header = ["player_id", "game_name", "tag_id", "tier", "rank", "role", 
-                      "wins", "losses", "manual_tier", "wr"]
+                      "wins", "losses", "manual_tier", "wr", "toxicity_points", "mvp_count"]
             
             # Fetch all player data
             players_data = db.cursor.fetchall()
@@ -675,6 +677,8 @@ class Player_game_info(Tournament_DB):
                 losses integer,
                 manual_tier float,
                 wr float,
+                toxicity_points integer not null default 0,
+                mvp_count integer not null default 0,
                 FOREIGN KEY (player_id) REFERENCES player (user_id) ON DELETE CASCADE
             )
             """
