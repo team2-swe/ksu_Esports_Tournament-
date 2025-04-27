@@ -65,7 +65,10 @@ cd ksu_Esports_Tournament-
 ### 2. Environment Configuration
 - Copy the provided `.env.template` file to a new file named `.env`:
 ```bash
+Mac
 cp .env.template .env
+Windows
+copy .env.template .env
 ```
 - Then edit the `.env` file to fill in your specific values.
 - The template includes all required fields with example values:
