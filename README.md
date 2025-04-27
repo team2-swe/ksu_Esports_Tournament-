@@ -137,7 +137,22 @@ LOL_SERVICE_PATH=./service_account.json
 
 ### 7. Install Python Dependencies
 ```bash
+
+# (Optional but strongly recommended) Create and activate a virtual environment
+
+# Create a virtual environment named "venv"
+python -m venv venv
+
+# Activate the virtual environment
+# On Windows:
+venv\Scripts\activate
+
+# On Mac/Linux:
+source venv/bin/activate
+
+# Install the project dependencies
 pip install -r requirements.txt
+
 ```
 Ensure you are using Python 3.8 or later.
 
