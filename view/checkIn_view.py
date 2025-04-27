@@ -111,7 +111,7 @@ class SignUpView(discord.ui.View):
     async def disable_all_items(self):
         for item in self.children:
             item.disabled = True
-        #await self.message.delete()  --we can delete the messgae at all
+        #await self.message.delete()  --we can delete the message at all
         await self.message.edit(view=self)
         
 
@@ -120,14 +120,14 @@ class SignUpView(discord.ui.View):
         await self.message.channel.send("this action is timed out, please use a /register command to register")
         await self.disable_all_items()
 
-    @discord.ui.button(label="signUp", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Sign Up", style=discord.ButtonStyle.success)
     async def signUp(self, interaction: discord.Interaction, button:discord.ui.Button):
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
         self.button_state.set_button_state(True)
         self.stop()
         await SharedLogic.execute_checkin_signup_model(interaction)
         await self.disable_all_items()
-        # await interaction.response.send_message("Thnaks for submission")
+        # await interaction.response.send_message("Thanks for submission")
         
 
 
