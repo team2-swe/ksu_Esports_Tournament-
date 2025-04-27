@@ -21,7 +21,7 @@ class SignUpView(discord.ui.View):
         await self.message.channel.send("this action is timed out, please use a '/register' command to register")
         await self.disable_all_items()
 
-    @discord.ui.button(label="signUp", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Sign Up", style=discord.ButtonStyle.success)
     async def signUp(self, interaction: discord.Interaction, button:discord.ui.Button):
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
       
